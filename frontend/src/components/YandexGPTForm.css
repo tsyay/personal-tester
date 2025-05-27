@@ -1,0 +1,47 @@
+.yandex-gpt-form {
+    max-width: 600px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: white;
+    border: 1px solid #000;
+    border-radius: 4px;
+}
+
+.yandex-gpt-form form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.yandex-gpt-form input {
+    padding: 10px;
+    border: 1px solid #000;
+    border-radius: 4px;
+    font-size: 16px;
+    background-color: white;
+    color: #000;
+}
+
+.yandex-gpt-form button {
+    padding: 10px 20px;
+    background-color: #000;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+.yandex-gpt-form button:hover {
+    background-color: #333;
+}
+
+.yandex-gpt-form .response {
+    margin-top: 20px;
+    padding: 15px;
+    border: 1px solid #000;
+    border-radius: 4px;
+    background-color: white;
+    color: #000;
+} 

@@ -1,0 +1,27 @@
+.analyzer-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh - 2 rem;
+  background-color: #ffffff;
+}
+
+.analyzer-content {
+  width: 100%;
+  max-width: 600px;
+  padding: 2rem;
+  text-align: center;
+}
+
+.analyzer-title {
+  font-size: 2.5rem;
+  margin-bottom: 1.5rem;
+  color: #000000;
+}
+
+.analyzer-description {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  margin-bottom: 2rem;
+  color: #333333;
+} 

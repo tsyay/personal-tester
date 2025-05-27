@@ -1,0 +1,135 @@
+* {
+    margin: 0;
+    padding: 0;
+}
+
+.hero {
+    width: 100%;
+    background-color: #f6f8fb;
+}
+.hero-container {
+    max-width: 1440px;
+    height: 90vh;
+    margin: 0 auto;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    gap: 1rem;
+
+}
+
+.tag {
+    border: 1px solid #7cc7fd;
+    border-radius: 2rem;
+
+    background-color: #f0f7ff;
+}
+
+.tag p {
+    padding: 0;
+    margin: 0.25rem 0.75rem; 
+
+    color: #0259a0;
+    font-weight: 600;
+}
+
+.hero-heading {
+    max-width: 1080px;
+    font-size: 3rem;
+    text-align: center;
+    white-space: pre-wrap;
+}
+
+.gradient {
+    background: linear-gradient( 0.25turn,#0270bd, #7839ea, #1acd8d);
+    color: transparent;
+    background-clip: text;
+}
+
+.hero-subtitle {
+    max-width: 600px;
+    color: #4b5563;
+    text-align: center;
+}
+
+.hero-subtitle h3{
+    font-size: 1.5rem;
+    font-weight: 500;
+}
+
+.cta-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.cta-button {
+    text-decoration: none;
+    font-weight: 700;
+    padding: 1rem 1.5rem;
+    color: #000;
+    background: #f6f8fb;
+    border: solid 1px #e0eefe;
+    border-radius: 0.5rem;
+    transition: 0.2s linear;
+}
+
+.cta-button:hover {
+    color: #fff;
+    background: #7839ea;
+  }
+  
+.gradient-link {
+    color: #fff;
+    background: linear-gradient( 0.25turn,#0270bd, #7839ea);
+    transition: 0.2s linear;
+}
+
+.gradient-link:hover {
+    background: linear-gradient( 0.5turn,#0270bd, #7839ea);
+    transition: 0.2s linear;
+}
+
+.prompt-form {
+    width: 600px;
+    margin: 0 auto;
+
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 0.25rem;
+
+    background-color: #fff;
+    padding: 1rem;
+
+    border-radius: 0.5rem;
+    box-shadow: -1px 0px 14px -7px rgba(34, 60, 80, 0.2);
+}
+
+.prompt-form img {
+    max-height: 2rem;
+    box-shadow: none;
+}
+
+.prompt-form input {
+    height: 2rem;
+    box-shadow: none;
+    flex: 1;
+    border: none;
+}
+
+.prompt-form button {
+    height: 3rem;
+    width: 8rem;
+    border-radius: 0.25rem;
+    text-align: center;
+    align-items: center;
+    box-shadow: none;
+    background-color: #0270bd;
+    color: #fff;
+    font-weight: 800;
+    border: none;
+}
