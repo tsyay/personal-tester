@@ -132,39 +132,94 @@ class TestViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'])
     def results(self, request, pk=None):
-        test = self.get_object()
-        attempt = TestAttempt.objects.filter(student=request.user, test=test, completed=True).first()
-        
-        if not attempt:
-            return Response({'error': 'Результаты не найдены'})
+        try:
+            test = self.get_object()
+            attempt = TestAttempt.objects.filter(
+                student=request.user,
+                test=test,
+                is_completed=True
+            ).first()
+            
+            if not attempt:
+                return Response({'error': 'Результаты не найдены'}, status=status.HTTP_404_NOT_FOUND)
 
-        answers = StudentAnswer.objects.filter(attempt=attempt)
-        return Response({
-            'test': TestSerializer(test).data,
-            'answers': [answer.answer for answer in answers]
-        })
+            # Get all student answers for this attempt
+            student_answers = StudentAnswer.objects.filter(attempt=attempt).select_related('question', 'answer')
+            
+            # Calculate score
+            total_questions = test.questions.count()
+            correct_answers = student_answers.filter(is_correct=True).count()
+            score = (correct_answers / total_questions * 100) if total_questions > 0 else 0
+
+            # Update attempt score
+            attempt.score = score
+            attempt.save()
+
+            return Response({
+                'test': TestSerializer(test).data,
+                'attempt': {
+                    'id': attempt.id,
+                    'score': score,
+                    'completed_at': attempt.completed_at,
+                    'answers': [{
+                        'question_id': answer.question.id,
+                        'question_text': answer.question.text,
+                        'selected_answer': answer.answer.text if answer.answer else None,
+                        'is_correct': answer.is_correct
+                    } for answer in student_answers]
+                }
+            })
+        except Exception as e:
+            print(f"Error getting test results: {str(e)}")  # Debug log
+            return Response(
+                {'error': f'Ошибка при получении результатов: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     @action(detail=True, methods=['post'])
     def submit(self, request, pk=None):
-        test = self.get_object()
-        answers = request.data.get('answers', [])
-        
-        attempt = TestAttempt.objects.create(
-            student=request.user,
-            test=test,
-            completed=True
-        )
+        try:
+            test = self.get_object()
+            answers_data = request.data.get('answers', [])
+            
+            # Create test attempt
+            attempt = TestAttempt.objects.create(
+                student=request.user,
+                test=test,
+                is_completed=True,
+                completed_at=timezone.now()
+            )
 
-        questions = list(test.questions.all())
-        for question_index, answer in enumerate(answers):
-            if question_index < len(questions):
-                StudentAnswer.objects.create(
-                    attempt=attempt,
-                    question=questions[question_index],
-                    answer=answer
-                )
+            # Get all questions for this test
+            questions = list(test.questions.all())
+            
+            # Process each answer
+            for question_index, answer_id in enumerate(answers_data):
+                if question_index < len(questions):
+                    question = questions[question_index]
+                    
+                    # Find the selected answer
+                    selected_answer = Answer.objects.filter(
+                        question=question,
+                        id=answer_id
+                    ).first()
+                    
+                    if selected_answer:
+                        # Create student answer
+                        StudentAnswer.objects.create(
+                            attempt=attempt,
+                            question=question,
+                            answer=selected_answer,
+                            is_correct=selected_answer.is_correct
+                        )
 
-        return Response({'message': 'Тест завершен'})
+            return Response({'message': 'Тест завершен'})
+        except Exception as e:
+            print(f"Error submitting test: {str(e)}")  # Debug log
+            return Response(
+                {'error': f'Ошибка при сохранении ответов: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     @action(detail=True, methods=['post'])
     def start_attempt(self, request, pk=None):

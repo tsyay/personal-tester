@@ -6,8 +6,8 @@ import '../styles/TestTaking.css';
 const TestTaking = () => {
     const { testId } = useParams();
     const navigate = useNavigate();
-    const [test, setTest] = useState({ title: '', questions: [] });
-    const [answers, setAnswers] = useState([]);
+    const [test, setTest] = useState(null);
+    const [answers, setAnswers] = useState({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -20,7 +20,6 @@ const TestTaking = () => {
                 });
                 console.log('Test data:', response.data); // Debug log
                 setTest(response.data);
-                setAnswers(new Array(response.data.questions.length).fill(0));
                 setLoading(false);
             } catch (err) {
                 console.error('Error fetching test:', err);
@@ -35,8 +34,11 @@ const TestTaking = () => {
     const handleSubmit = async () => {
         try {
             const token = localStorage.getItem('access_token');
+            // Convert answers object to array of answer IDs
+            const answerIds = test.questions.map(question => answers[question.id] || null);
+            
             await axios.post(`http://localhost:8000/api/tests/${testId}/submit/`, 
-                { answers },
+                { answers: answerIds },
                 { headers: { 'Authorization': `Bearer ${token}` } }
             );
             navigate(`/tests/${testId}/results`);
@@ -48,30 +50,32 @@ const TestTaking = () => {
 
     if (loading) return <div className="loading">Загрузка теста...</div>;
     if (error) return <div className="error">{error}</div>;
+    if (!test) return <div className="error">Тест не найден</div>;
 
     return (
         <div className="test-taking-container">
             <h1>{test.title}</h1>
             
             <div className="questions-container">
-                {test.questions && test.questions.map((question, index) => (
+                {test.questions && test.questions.map((question) => (
                     <div key={question.id} className="question-card">
-                        <h3>Вопрос {index + 1}</h3>
+                        <h3>Вопрос {question.id}</h3>
                         <p>{question.text}</p>
                         <div className="options-container">
-                            {[1, 2, 3, 4].map((option) => (
-                                <div key={option} className="option">
+                            {question.answers && question.answers.map((answer) => (
+                                <div key={answer.id} className="option">
                                     <input
                                         type="radio"
-                                        name={`question-${index}`}
-                                        checked={answers[index] === option}
+                                        name={`question-${question.id}`}
+                                        checked={answers[question.id] === answer.id}
                                         onChange={() => {
-                                            const newAnswers = [...answers];
-                                            newAnswers[index] = option;
-                                            setAnswers(newAnswers);
+                                            setAnswers(prev => ({
+                                                ...prev,
+                                                [question.id]: answer.id
+                                            }));
                                         }}
                                     />
-                                    <label>Вариант {option}</label>
+                                    <label>{answer.text}</label>
                                 </div>
                             ))}
                         </div>
@@ -82,6 +86,7 @@ const TestTaking = () => {
             <button 
                 className="submit-button"
                 onClick={handleSubmit}
+                disabled={!test.questions || test.questions.length === 0}
             >
                 Завершить тест
             </button>

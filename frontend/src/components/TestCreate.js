@@ -10,15 +10,12 @@ const TestCreate = () => {
         description: '',
         test_type: 'MULTIPLE_CHOICE',
         time_limit: 0,
-        questions: [
+        questions: [ 
             {
                 text: '',
                 question_type: 'MULTIPLE_CHOICE',
                 points: 1,
                 answers: [
-                    { text: '', is_correct: false },
-                    { text: '', is_correct: false },
-                    { text: '', is_correct: false },
                     { text: '', is_correct: false }
                 ]
             }
@@ -44,9 +41,6 @@ const TestCreate = () => {
                 question_type: 'MULTIPLE_CHOICE',
                 points: 1,
                 answers: [
-                    { text: '', is_correct: false },
-                    { text: '', is_correct: false },
-                    { text: '', is_correct: false },
                     { text: '', is_correct: false }
                 ]
             }]
@@ -56,6 +50,18 @@ const TestCreate = () => {
     const updateQuestion = (index, field, value) => {
         const newQuestions = [...test.questions];
         newQuestions[index] = { ...newQuestions[index], [field]: value };
+        setTest(prev => ({ ...prev, questions: newQuestions }));
+    };
+
+    const addAnswer = (questionIndex) => {
+        const newQuestions = [...test.questions];
+        newQuestions[questionIndex].answers.push({ text: '', is_correct: false });
+        setTest(prev => ({ ...prev, questions: newQuestions }));
+    };
+
+    const removeAnswer = (questionIndex, answerIndex) => {
+        const newQuestions = [...test.questions];
+        newQuestions[questionIndex].answers = newQuestions[questionIndex].answers.filter((_, i) => i !== answerIndex);
         setTest(prev => ({ ...prev, questions: newQuestions }));
     };
 
@@ -99,7 +105,6 @@ const TestCreate = () => {
                     >
                         <option value="MULTIPLE_CHOICE">Множественный выбор</option>
                         <option value="TEXT_INPUT">Текстовый ввод</option>
-                        <option value="MIXED">Смешанный</option>
                     </select>
                 </div>
 
@@ -115,10 +120,27 @@ const TestCreate = () => {
 
                 <div className="questions-section">
                     <h2>Вопросы</h2>
+                    <button type="button" className="add-question-button" onClick={addQuestion}>
+                        Добавить вопрос
+                    </button>
                     {test.questions.map((question, questionIndex) => (
                         <div key={questionIndex} className="question-card">
+                            <div className="question-header">
+                                <h3>Вопрос {questionIndex + 1}</h3>
+                                <button
+                                    type="button"
+                                    className="remove-button"
+                                    onClick={() => {
+                                        const newQuestions = test.questions.filter((_, i) => i !== questionIndex);
+                                        setTest(prev => ({ ...prev, questions: newQuestions }));
+                                    }}
+                                >
+                                    Удалить вопрос
+                                </button>
+                            </div>
+
                             <div className="form-group">
-                                <label>Вопрос {questionIndex + 1}:</label>
+                                <label>Текст вопроса:</label>
                                 <input
                                     type="text"
                                     value={question.text}
@@ -151,7 +173,16 @@ const TestCreate = () => {
 
                             {question.question_type === 'MULTIPLE_CHOICE' && (
                                 <div className="answers-section">
-                                    <label>Варианты ответов:</label>
+                                    <div className="answers-header">
+                                        <h4>Варианты ответов</h4>
+                                        <button
+                                            type="button"
+                                            className="add-answer-button"
+                                            onClick={() => addAnswer(questionIndex)}
+                                        >
+                                            Добавить вариант
+                                        </button>
+                                    </div>
                                     {question.answers.map((answer, answerIndex) => (
                                         <div key={answerIndex} className="answer-input">
                                             <input
@@ -176,15 +207,21 @@ const TestCreate = () => {
                                                 />
                                                 Правильный ответ
                                             </label>
+                                            {question.answers.length > 1 && (
+                                                <button
+                                                    type="button"
+                                                    className="remove-answer-button"
+                                                    onClick={() => removeAnswer(questionIndex, answerIndex)}
+                                                >
+                                                    Удалить
+                                                </button>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
                             )}
                         </div>
                     ))}
-                    <button type="button" onClick={addQuestion} className="add-question-button">
-                        Добавить вопрос
-                    </button>
                 </div>
 
                 <button type="submit" className="submit-button">
