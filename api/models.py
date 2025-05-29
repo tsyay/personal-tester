@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from django.core.validators import EmailValidator
+from django.core.validators import EmailValidator, FileExtensionValidator
+from django.utils.text import slugify
 
 class Student(AbstractUser):
     class Role(models.TextChoices):
@@ -29,7 +30,7 @@ class Student(AbstractUser):
     full_name = models.CharField(
         max_length=255,
         verbose_name='Full Name'
-    )
+    ) 
 
     # Set email as the USERNAME_FIELD
     USERNAME_FIELD = 'username'
@@ -41,3 +42,102 @@ class Student(AbstractUser):
 
     def __str__(self):
         return f"{self.full_name} ({self.username})"
+
+class Test(models.Model):
+    class TestType(models.TextChoices):
+        MULTIPLE_CHOICE = 'MULTIPLE_CHOICE', 'Multiple Choice'
+        TEXT_INPUT = 'TEXT_INPUT', 'Text Input'
+        MIXED = 'MIXED', 'Mixed'
+
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    creator = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='created_tests')
+    test_type = models.CharField(max_length=20, choices=TestType.choices, default=TestType.MULTIPLE_CHOICE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_published = models.BooleanField(default=False)
+    time_limit = models.IntegerField(default=0, help_text="Time limit in minutes (0 for no limit)")
+    questions = models.ManyToManyField('Question', related_name='tests', blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.title
+
+class Question(models.Model):
+    text = models.TextField()
+    image = models.ImageField(upload_to='question_images/', null=True, blank=True)
+    order = models.IntegerField(default=0)
+    points = models.IntegerField(default=1)
+    question_type = models.CharField(
+        max_length=20,
+        choices=Test.TestType.choices,
+        default=Test.TestType.MULTIPLE_CHOICE
+    )
+
+    class Meta:
+        ordering = ['order']
+
+    def __str__(self):
+        return f"Question {self.order}"
+
+class Answer(models.Model):
+    question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='answers')
+    text = models.TextField()
+    is_correct = models.BooleanField(default=False)
+    order = models.IntegerField(default=0)
+
+    class Meta:
+        ordering = ['order']
+
+    def __str__(self):
+        return f"Answer for {self.question}"
+
+class TestAttempt(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='test_attempts')
+    test = models.ForeignKey(Test, on_delete=models.CASCADE, related_name='attempts')
+    started_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    score = models.FloatField(null=True, blank=True)
+    is_completed = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['-started_at']
+
+    def __str__(self):
+        return f"{self.student.full_name} - {self.test.title}"
+
+class StudentAnswer(models.Model):
+    attempt = models.ForeignKey(TestAttempt, on_delete=models.CASCADE, related_name='answers')
+    question = models.ForeignKey(Question, on_delete=models.CASCADE)
+    answer = models.ForeignKey(Answer, on_delete=models.CASCADE, null=True, blank=True)
+    text_answer = models.TextField(null=True, blank=True)
+    is_correct = models.BooleanField(null=True)
+    answered_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['answered_at']
+
+    def __str__(self):
+        return f"Answer for {self.question} by {self.attempt.student.full_name}"
+
+class Article(models.Model):
+    title = models.CharField(max_length=200)
+    content = models.TextField()
+    creator = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='articles')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_published = models.BooleanField(default=False)
+    featured_image = models.ImageField(upload_to='articles/', null=True, blank=True)
+
+    def __str__(self):
+        return self.title
+
+class ArticleImage(models.Model):
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='images')
+    image = models.ImageField(upload_to='articles/images/')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Image for {self.article.title}"

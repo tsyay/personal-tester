@@ -2,15 +2,16 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 100vh;
+    min-height: calc(100vh - 60px);
     background-color: #f5f5f5;
+    padding: 20px;
 }
 
 .auth-form {
     background: white;
-    padding: 2rem;
+    padding: 30px;
     border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     width: 100%;
     max-width: 400px;
 }
@@ -18,65 +19,75 @@
 .auth-form h2 {
     text-align: center;
     color: #333;
-    margin-bottom: 1.5rem;
+    margin-bottom: 30px;
 }
 
 .form-group {
-    margin-bottom: 1rem;
+    margin-bottom: 20px;
 }
 
 .form-group label {
     display: block;
-    margin-bottom: 0.5rem;
+    margin-bottom: 5px;
     color: #666;
+    font-weight: 500;
 }
 
 .form-group input {
     width: 100%;
-    padding: 0.75rem;
+    padding: 10px;
     border: 1px solid #ddd;
     border-radius: 4px;
-    font-size: 1rem;
+    font-size: 16px;
+    transition: border-color 0.3s ease;
 }
 
 .form-group input:focus {
     outline: none;
-    border-color: #4a90e2;
-    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
 .auth-button {
     width: 100%;
-    padding: 0.75rem;
-    background-color: #4a90e2;
+    padding: 12px;
+    background-color: #007bff;
     color: white;
     border: none;
     border-radius: 4px;
-    font-size: 1rem;
+    font-size: 16px;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: background-color 0.3s ease;
 }
 
 .auth-button:hover {
-    background-color: #357abd;
+    background-color: #0056b3;
+}
+
+.auth-button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+.error-message {
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    text-align: center;
 }
 
 .auth-link {
     display: block;
     text-align: center;
-    margin-top: 1rem;
-    color: #4a90e2;
+    margin-top: 20px;
+    color: #007bff;
     text-decoration: none;
 }
 
 .auth-link:hover {
     text-decoration: underline;
-}
-
-.error-message {
-    color: #dc3545;
-    margin-top: 0.5rem;
-    font-size: 0.875rem;
 }
 
 .success-message {

@@ -1,0 +1,140 @@
+.dashboard {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.dashboard h1 {
+    margin-bottom: 30px;
+    color: #333;
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+    gap: 30px;
+    margin-bottom: 30px;
+}
+
+.dashboard-section {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.section-header h2 {
+    margin: 0;
+    color: #333;
+}
+
+.view-all {
+    color: #4a90e2;
+    text-decoration: none;
+    font-size: 0.9em;
+}
+
+.view-all:hover {
+    text-decoration: underline;
+}
+
+.test-list,
+.article-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.test-card,
+.article-card {
+    background: #f8f9fa;
+    border-radius: 6px;
+    padding: 15px;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.2s;
+}
+
+.test-card:hover,
+.article-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.test-card h3,
+.article-card h3 {
+    margin: 0 0 10px;
+    color: #333;
+    font-size: 1.1em;
+}
+
+.test-card p,
+.article-card p {
+    margin: 0 0 10px;
+    color: #666;
+    font-size: 0.9em;
+    line-height: 1.4;
+}
+
+.test-meta,
+.article-meta {
+    display: flex;
+    justify-content: space-between;
+    color: #888;
+    font-size: 0.8em;
+}
+
+.no-items {
+    text-align: center;
+    color: #666;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.dashboard-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 30px;
+}
+
+.action-button {
+    background-color: #4a90e2;
+    color: white;
+    text-decoration: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+}
+
+.action-button:hover {
+    background-color: #357abd;
+}
+
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}
+
+.error {
+    text-align: center;
+    padding: 20px;
+    color: #dc3545;
+    background-color: #f8d7da;
+    border-radius: 4px;
+    margin: 20px 0;
+}
+
+@media (min-width: 768px) {
+    .dashboard-content {
+        grid-template-columns: repeat(2, 1fr);
+    }
+} 

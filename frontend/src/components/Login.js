@@ -1,52 +1,81 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import axios from 'axios';
 import '../styles/Auth.css';
 
 const Login = () => {
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
         username: '',
-        password: '',
+        password: ''
     });
-    const [error, setError] = useState('');
+    const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
 
     const handleChange = (e) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value
-        });
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError('');
+        setError(null);
         setLoading(true);
 
         try {
-            const response = await fetch('http://localhost:8000/api/students/login/', {
-                method: 'POST',
+            // Сначала получаем токены
+            const authResponse = await axios.post(
+                'http://localhost:8000/api/students/login/',
+                {
+                    username: formData.username,
+                    password: formData.password
+                }
+            );
+
+            const { access, refresh, user } = authResponse.data;
+
+            // Сохраняем токены
+            localStorage.setItem('access_token', access);
+            localStorage.setItem('refresh_token', refresh);
+
+            // Получаем полные данные пользователя
+            const userResponse = await axios.get('http://localhost:8000/api/students/me/', {
                 headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(formData),
+                    'Authorization': `Bearer ${access}`
+                }
             });
 
-            const data = await response.json();
+            console.log('User data from server:', userResponse.data);
 
-            if (response.ok) {
-                // Store tokens in localStorage
-                localStorage.setItem('access_token', data.access);
-                localStorage.setItem('refresh_token', data.refresh);
-                localStorage.setItem('user', JSON.stringify(data.user));
-                
-                // Redirect to dashboard or home page
-                navigate('/dashboard');
-            } else {
-                setError(data.error || 'Login failed. Please try again.');
-            }
+            // Сохраняем данные пользователя
+            localStorage.setItem('user', JSON.stringify(userResponse.data));
+
+            console.log('Saved user data:', JSON.parse(localStorage.getItem('user')));
+
+            // Устанавливаем заголовок авторизации по умолчанию
+            axios.defaults.headers.common['Authorization'] = `Bearer ${access}`;
+
+            navigate('/dashboard');
         } catch (err) {
-            setError('An error occurred. Please try again.');
+            if (err.response?.data) {
+                const data = err.response.data;
+                if (data.password) {
+                    setError(data.password[0]);
+                } else if (data.username) {
+                    setError(data.username[0]);
+                } else if (typeof data === 'object') {
+                    const firstErrorKey = Object.keys(data)[0];
+                    const firstError = data[firstErrorKey];
+                    setError(Array.isArray(firstError) ? firstError[0] : firstError);
+                } else {
+                    setError(data.toString());
+                }
+            } else {
+                setError(err.message || 'Ошибка сервера');
+            }
         } finally {
             setLoading(false);
         }
@@ -55,12 +84,14 @@ const Login = () => {
     return (
         <div className="auth-container">
             <form className="auth-form" onSubmit={handleSubmit}>
-                <h2>Login</h2>
+                <h2>Вход в систему</h2>
                 
+                {error && <div className="error-message">{error}</div>}
+
                 <div className="form-group">
-                    <label htmlFor="username">Email</label>
+                    <label htmlFor="username">Имя пользователя</label>
                     <input
-                        type="email"
+                        type="text"
                         id="username"
                         name="username"
                         value={formData.username}
@@ -70,7 +101,7 @@ const Login = () => {
                 </div>
 
                 <div className="form-group">
-                    <label htmlFor="password">Password</label>
+                    <label htmlFor="password">Пароль</label>
                     <input
                         type="password"
                         id="password"
@@ -81,18 +112,16 @@ const Login = () => {
                     />
                 </div>
 
-                {error && <div className="error-message">{error}</div>}
-
                 <button 
                     type="submit" 
                     className="auth-button"
                     disabled={loading}
                 >
-                    {loading ? 'Logging in...' : 'Login'}
+                    {loading ? 'Вход...' : 'Войти'}
                 </button>
 
                 <Link to="/register" className="auth-link">
-                    Don't have an account? Register here
+                    Нет аккаунта? Зарегистрироваться
                 </Link>
             </form>
         </div>

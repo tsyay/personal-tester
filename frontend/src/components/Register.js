@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import axios from 'axios';
 import '../styles/Auth.css';
 
 const Register = () => {
@@ -11,49 +12,65 @@ const Register = () => {
         full_name: '',
         role: 'STUDENT'
     });
-    const [error, setError] = useState('');
+    const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
 
     const handleChange = (e) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value
-        });
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError('');
+        setError(null);
         setLoading(true);
 
+        if (formData.password !== formData.password2) {
+            setError('Пароли не совпадают');
+            setLoading(false);
+            return;
+        }
+
         try {
-            const response = await fetch('http://localhost:8000/api/students/register/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(formData),
-            });
+            const response = await axios.post(
+                'http://localhost:8000/api/students/register/',
+                {
+                    username: formData.username,
+                    password: formData.password,
+                    password2: formData.password2,
+                    full_name: formData.full_name,
+                    role: formData.role
+                }
+            );
 
-            const data = await response.json();
-
-            if (response.ok) {
-                // Store tokens in localStorage
-                localStorage.setItem('access_token', data.access);
-                localStorage.setItem('refresh_token', data.refresh);
-                localStorage.setItem('user', JSON.stringify(data.user));
-                
-                // Redirect to dashboard or home page
-                navigate('/dashboard');
-            } else {
-                // Handle validation errors
-                const errorMessage = Object.values(data)
-                    .flat()
-                    .join(', ');
-                setError(errorMessage || 'Registration failed. Please try again.');
-            }
+            localStorage.setItem('access_token', response.data.access);
+            localStorage.setItem('refresh_token', response.data.refresh);
+            localStorage.setItem('user', JSON.stringify(response.data.user));
+            
+            axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.access}`;
+            
+            navigate('/dashboard');
         } catch (err) {
-            setError('An error occurred. Please try again.');
+            if (err.response?.data) {
+                const data = err.response.data;
+                
+                if (data.password) {
+                    setError(data.password[0]);
+                } else if (data.username) {
+                    setError(data.username[0]);
+                } else if (typeof data === 'object') {
+                    const firstErrorKey = Object.keys(data)[0];
+                    const firstError = data[firstErrorKey];
+                    setError(Array.isArray(firstError) ? firstError[0] : firstError);
+                } else {
+                    setError(data.toString());
+                }
+            } else {
+                setError(err.message || 'Ошибка сервера');
+            }
         } finally {
             setLoading(false);
         }
@@ -62,22 +79,12 @@ const Register = () => {
     return (
         <div className="auth-container">
             <form className="auth-form" onSubmit={handleSubmit}>
-                <h2>Register</h2>
+                <h2>Регистрация</h2>
                 
-                <div className="form-group">
-                    <label htmlFor="username">Email</label>
-                    <input
-                        type="email"
-                        id="username"
-                        name="username"
-                        value={formData.username}
-                        onChange={handleChange}
-                        required
-                    />
-                </div>
+                {error && <div className="error-message">{error}</div>}
 
                 <div className="form-group">
-                    <label htmlFor="full_name">Full Name</label>
+                    <label htmlFor="full_name">ФИО</label>
                     <input
                         type="text"
                         id="full_name"
@@ -89,7 +96,19 @@ const Register = () => {
                 </div>
 
                 <div className="form-group">
-                    <label htmlFor="password">Password</label>
+                    <label htmlFor="username">Имя пользователя</label>
+                    <input
+                        type="text"
+                        id="username"
+                        name="username"
+                        value={formData.username}
+                        onChange={handleChange}
+                        required
+                    />
+                </div>
+
+                <div className="form-group">
+                    <label htmlFor="password">Пароль</label>
                     <input
                         type="password"
                         id="password"
@@ -97,11 +116,12 @@ const Register = () => {
                         value={formData.password}
                         onChange={handleChange}
                         required
+                        minLength="8"
                     />
                 </div>
 
                 <div className="form-group">
-                    <label htmlFor="password2">Confirm Password</label>
+                    <label htmlFor="password2">Подтвердите пароль</label>
                     <input
                         type="password"
                         id="password2"
@@ -109,40 +129,24 @@ const Register = () => {
                         value={formData.password2}
                         onChange={handleChange}
                         required
+                        minLength="8"
                     />
                 </div>
-
-                <div className="form-group">
-                    <label htmlFor="role">Role</label>
-                    <select
-                        id="role"
-                        name="role"
-                        value={formData.role}
-                        onChange={handleChange}
-                        required
-                    >
-                        <option value="STUDENT">Student</option>
-                        <option value="TEACHER">Teacher</option>
-                        <option value="ADMIN">Administrator</option>
-                    </select>
-                </div>
-
-                {error && <div className="error-message">{error}</div>}
 
                 <button 
                     type="submit" 
                     className="auth-button"
                     disabled={loading}
                 >
-                    {loading ? 'Registering...' : 'Register'}
+                    {loading ? 'Регистрация...' : 'Зарегистрироваться'}
                 </button>
 
                 <Link to="/login" className="auth-link">
-                    Already have an account? Login here
+                    Уже есть аккаунт? Войти
                 </Link>
             </form>
         </div>
     );
 };
 
-export default Register; 
+export default Register;
