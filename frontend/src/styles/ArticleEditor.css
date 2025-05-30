@@ -83,4 +83,55 @@
     padding: 10px;
     border-radius: 4px;
     margin-bottom: 20px;
+}
+
+.page-section {
+    background-color: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 1px solid #e9ecef;
+}
+
+.page-section h3 {
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 1.2rem;
+}
+
+.add-page-button,
+.remove-page-button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-bottom: 20px;
+    transition: background-color 0.2s;
+}
+
+.add-page-button {
+    background-color: #007bff;
+    color: white;
+}
+
+.add-page-button:hover {
+    background-color: #0056b3;
+}
+
+.remove-page-button {
+    background-color: #dc3545;
+    color: white;
+    margin-top: 10px;
+}
+
+.remove-page-button:hover {
+    background-color: #c82333;
+}
+
+.loading {
+    text-align: center;
+    padding: 20px;
+    font-size: 18px;
+    color: #666;
 } 

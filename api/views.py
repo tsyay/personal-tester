@@ -6,12 +6,12 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django.utils import timezone
-from .models import Test, Question, Answer, TestAttempt, StudentAnswer, Student, Article, ArticleImage
+from .models import Test, Question, Answer, TestAttempt, StudentAnswer, Student, Article, ArticlePage, ArticleProgress
 from .serializers import (
     StudentSerializer, StudentCreateSerializer, LoginSerializer,
     TestSerializer, QuestionSerializer, AnswerSerializer,
     TestAttemptSerializer, StudentAnswerSerializer,
-    ArticleSerializer, ArticleImageSerializer
+    ArticleSerializer, ArticleCreateSerializer, ArticlePageSerializer, ArticleProgressSerializer
 )
 from django.db import models
 from django.utils.text import slugify
@@ -109,6 +109,20 @@ class StudentViewSet(viewsets.ModelViewSet):
                 })
             return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['post'], permission_classes=[permissions.AllowAny])
+    def login_refresh(self, request):
+        try:
+            refresh_token = request.data.get('refresh')
+            if not refresh_token:
+                return Response({'error': 'Refresh token is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+            refresh = RefreshToken(refresh_token)
+            return Response({
+                'access': str(refresh.access_token)
+            })
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
 
 class TestViewSet(viewsets.ModelViewSet):
     queryset = Test.objects.all()
@@ -280,15 +294,25 @@ class ArticleViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        logger.info(f"Getting articles for user {user.id} with role {user.role}")
         if user.role == 'TEACHER':
-            return Article.objects.filter(creator=user)
-        return Article.objects.filter(is_published=True)
+            articles = Article.objects.filter(creator=user)
+            logger.info(f"Teacher articles count: {articles.count()}")
+            return articles
+        articles = Article.objects.filter(is_published=True)
+        logger.info(f"Published articles count: {articles.count()}")
+        return articles
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return ArticleCreateSerializer
+        return ArticleSerializer
 
     def perform_create(self, serializer):
         serializer.save(creator=self.request.user)
 
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        serializer = self.get_serializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
@@ -301,6 +325,67 @@ class ArticleViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
         return Response(serializer.data)
+
+    def retrieve(self, request, *args, **kwargs):
+        logger.info(f"Retrieving article with ID: {kwargs.get('pk')}")
+        try:
+            # Проверяем, что pk существует и является числом
+            pk = kwargs.get('pk')
+            if not pk:
+                logger.error("No pk provided in kwargs")
+                return Response({'error': 'ID статьи не указан'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            try:
+                pk = int(pk)
+            except (TypeError, ValueError):
+                logger.error(f"Invalid pk format: {pk}")
+                return Response({'error': 'Неверный формат ID статьи'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Получаем статью
+            try:
+                instance = self.get_object()
+                logger.info(f"Article found: {instance is not None}")
+                if instance:
+                    logger.info(f"Article details - ID: {instance.id}, Creator: {instance.creator.id}, Published: {instance.is_published}")
+                serializer = self.get_serializer(instance)
+                return Response(serializer.data)
+            except Article.DoesNotExist:
+                logger.error(f"Article with ID {pk} does not exist")
+                return Response({'error': 'Статья не найдена'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(f"Error retrieving article: {str(e)}")
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=True, methods=['get'])
+    def page(self, request, pk=None):
+        article = self.get_object()
+        page_number = request.query_params.get('page', 1)
+        try:
+            page = article.pages.get(page_number=page_number)
+            return Response(ArticlePageSerializer(page).data)
+        except ArticlePage.DoesNotExist:
+            return Response({'error': 'Page not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=True, methods=['post'])
+    def update_progress(self, request, pk=None):
+        article = self.get_object()
+        page_number = request.data.get('page_number', 1)
+        
+        # Get or create progress
+        progress, created = ArticleProgress.objects.get_or_create(
+            student=request.user,
+            article=article,
+            defaults={'current_page': page_number}
+        )
+        
+        if not created:
+            progress.current_page = page_number
+            # Mark as completed if it's the last page
+            if page_number >= article.total_pages:
+                progress.is_completed = True
+            progress.save()
+        
+        return Response(ArticleProgressSerializer(progress).data)
 
     @action(detail=True, methods=['post'])
     def publish(self, request, pk=None):
@@ -325,14 +410,18 @@ class ArticleViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def upload_image(self, request, pk=None):
         article = self.get_object()
-        if 'image' not in request.FILES:
-            return Response({'error': 'No image provided'}, 
-                          status=status.HTTP_400_BAD_REQUEST)
+        page_number = request.data.get('page_number', 1)
         
-        image = request.FILES['image']
-        article_image = ArticleImage.objects.create(
-            article=article,
-            image=image
-        )
-        return Response({'image_url': article_image.image.url})
+        try:
+            page = article.pages.get(page_number=page_number)
+            if 'image' not in request.FILES:
+                return Response({'error': 'No image provided'}, 
+                              status=status.HTTP_400_BAD_REQUEST)
+            
+            page.image = request.FILES['image']
+            page.save()
+            return Response(ArticlePageSerializer(page, context={'request': request}).data)
+        except ArticlePage.DoesNotExist:
+            return Response({'error': 'Page not found'}, 
+                          status=status.HTTP_404_NOT_FOUND)
 

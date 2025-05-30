@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
-from .models import Student, Test, Question, Answer, TestAttempt, StudentAnswer, Article, ArticleImage
+from .models import Student, Test, Question, Answer, TestAttempt, StudentAnswer, Article, ArticlePage, ArticleProgress
 
 class StudentSerializer(serializers.ModelSerializer):
     class Meta:
@@ -148,12 +148,12 @@ class TestAttemptSerializer(serializers.ModelSerializer):
                  'score', 'is_completed', 'answers')
         read_only_fields = ('student', 'started_at', 'completed_at', 'score', 'answers')
 
-class ArticleImageSerializer(serializers.ModelSerializer):
+class ArticlePageSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
 
     class Meta:
-        model = ArticleImage
-        fields = ('id', 'image', 'image_url', 'caption', 'order')
+        model = ArticlePage
+        fields = ['id', 'title', 'content', 'page_number', 'image', 'image_url', 'created_at', 'updated_at']
 
     def get_image_url(self, obj):
         if obj.image:
@@ -161,42 +161,47 @@ class ArticleImageSerializer(serializers.ModelSerializer):
         return None
 
 class ArticleSerializer(serializers.ModelSerializer):
+    pages = ArticlePageSerializer(many=True, read_only=True)
     creator = StudentSerializer(read_only=True)
-    images = ArticleImageSerializer(many=True, read_only=True)
-    featured_image_url = serializers.SerializerMethodField()
+    progress = serializers.SerializerMethodField()
 
     class Meta:
         model = Article
-        fields = ('id', 'title', 'content', 'creator', 'created_at', 'updated_at', 
-                 'is_published', 'featured_image', 'featured_image_url', 'images')
-        read_only_fields = ('creator', 'created_at', 'updated_at')
+        fields = ['id', 'title', 'description', 'creator', 'created_at', 'updated_at', 
+                 'is_published', 'featured_image', 'total_pages', 'pages', 'progress']
 
-    def get_featured_image_url(self, obj):
-        if obj.featured_image:
-            return self.context['request'].build_absolute_uri(obj.featured_image.url)
+    def get_progress(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            progress = ArticleProgress.objects.filter(
+                student=request.user,
+                article=obj
+            ).first()
+            if progress:
+                return {
+                    'current_page': progress.current_page,
+                    'progress_percentage': progress.progress_percentage,
+                    'is_completed': progress.is_completed
+                }
         return None
 
+class ArticleCreateSerializer(serializers.ModelSerializer):
+    pages = ArticlePageSerializer(many=True)
+
+    class Meta:
+        model = Article
+        fields = ['id', 'title', 'description', 'is_published', 'featured_image', 'total_pages', 'pages']
+
     def create(self, validated_data):
-        images_data = self.context.get('images', [])
+        pages_data = validated_data.pop('pages')
         article = Article.objects.create(**validated_data)
         
-        for image_data in images_data:
-            ArticleImage.objects.create(article=article, **image_data)
+        for page_data in pages_data:
+            ArticlePage.objects.create(article=article, **page_data)
         
         return article
 
-    def update(self, instance, validated_data):
-        images_data = self.context.get('images', [])
-        
-        # Update article fields
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        
-        # Update images if provided
-        if images_data:
-            instance.images.all().delete()
-            for image_data in images_data:
-                ArticleImage.objects.create(article=instance, **image_data)
-        
-        return instance 
+class ArticleProgressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ArticleProgress
+        fields = ['current_page', 'progress_percentage', 'is_completed', 'last_read_at'] 

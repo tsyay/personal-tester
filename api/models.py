@@ -135,20 +135,46 @@ class StudentAnswer(models.Model):
 
 class Article(models.Model):
     title = models.CharField(max_length=200)
-    content = models.TextField()
+    description = models.TextField(help_text="Краткое описание статьи", null=True, blank=True)
     creator = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='articles')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_published = models.BooleanField(default=False)
     featured_image = models.ImageField(upload_to='articles/', null=True, blank=True)
+    total_pages = models.IntegerField(default=1)
 
     def __str__(self):
         return self.title
 
-class ArticleImage(models.Model):
-    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='images')
-    image = models.ImageField(upload_to='articles/images/')
+class ArticlePage(models.Model):
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='pages')
+    title = models.CharField(max_length=200)
+    content = models.TextField()
+    page_number = models.IntegerField()
+    image = models.ImageField(upload_to='articles/pages/', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['page_number']
+        unique_together = ['article', 'page_number']
 
     def __str__(self):
-        return f"Image for {self.article.title}"
+        return f"{self.article.title} - Page {self.page_number}"
+
+class ArticleProgress(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='article_progress')
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='progress')
+    current_page = models.IntegerField(default=1)
+    last_read_at = models.DateTimeField(auto_now=True)
+    is_completed = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ['student', 'article']
+
+    def __str__(self):
+        return f"{self.student.full_name} - {self.article.title}"
+
+    @property
+    def progress_percentage(self):
+        return (self.current_page / self.article.total_pages) * 100 if self.article.total_pages > 0 else 0
