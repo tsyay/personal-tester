@@ -26,7 +26,7 @@ const TestCreate = () => {
         e.preventDefault();
         const token = localStorage.getItem('access_token');
         
-        axios.post('/api/tests/', test, {
+        axios.post('http://localhost:8000/api/tests/', test, {
             headers: { 'Authorization': `Bearer ${token}` }
         }).then(() => {
             navigate('/tests');
@@ -50,6 +50,17 @@ const TestCreate = () => {
     const updateQuestion = (index, field, value) => {
         const newQuestions = [...test.questions];
         newQuestions[index] = { ...newQuestions[index], [field]: value };
+        
+        // If changing to text input, remove answers
+        if (field === 'question_type' && value === 'TEXT_INPUT') {
+            newQuestions[index].answers = [];
+        } 
+        // If changing to multiple choice and no answers exist, add default answer
+        else if (field === 'question_type' && value === 'MULTIPLE_CHOICE' && 
+                (!newQuestions[index].answers || newQuestions[index].answers.length === 0)) {
+            newQuestions[index].answers = [{ text: '', is_correct: false }];
+        }
+        
         setTest(prev => ({ ...prev, questions: newQuestions }));
     };
 
@@ -61,7 +72,7 @@ const TestCreate = () => {
 
     const removeAnswer = (questionIndex, answerIndex) => {
         const newQuestions = [...test.questions];
-        newQuestions[questionIndex].answers = newQuestions[questionIndex].answers.filter((_, i) => i !== answerIndex);
+        newQuestions[questionIndex].answers.splice(answerIndex, 1);
         setTest(prev => ({ ...prev, questions: newQuestions }));
     };
 
@@ -71,6 +82,12 @@ const TestCreate = () => {
             ...newQuestions[questionIndex].answers[answerIndex],
             [field]: value
         };
+        setTest(prev => ({ ...prev, questions: newQuestions }));
+    };
+
+    const removeQuestion = (index) => {
+        const newQuestions = [...test.questions];
+        newQuestions.splice(index, 1);
         setTest(prev => ({ ...prev, questions: newQuestions }));
     };
 
@@ -105,6 +122,7 @@ const TestCreate = () => {
                     >
                         <option value="MULTIPLE_CHOICE">Множественный выбор</option>
                         <option value="TEXT_INPUT">Текстовый ввод</option>
+                        <option value="MIXED">Смешанный</option>
                     </select>
                 </div>
 
@@ -113,27 +131,21 @@ const TestCreate = () => {
                     <input
                         type="number"
                         value={test.time_limit}
-                        onChange={(e) => setTest(prev => ({ ...prev, time_limit: parseInt(e.target.value) }))}
+                        onChange={(e) => setTest(prev => ({ ...prev, time_limit: parseInt(e.target.value) || 0 }))}
                         min="0"
                     />
                 </div>
 
                 <div className="questions-section">
                     <h2>Вопросы</h2>
-                    <button type="button" className="add-question-button" onClick={addQuestion}>
-                        Добавить вопрос
-                    </button>
                     {test.questions.map((question, questionIndex) => (
                         <div key={questionIndex} className="question-card">
                             <div className="question-header">
                                 <h3>Вопрос {questionIndex + 1}</h3>
                                 <button
                                     type="button"
-                                    className="remove-button"
-                                    onClick={() => {
-                                        const newQuestions = test.questions.filter((_, i) => i !== questionIndex);
-                                        setTest(prev => ({ ...prev, questions: newQuestions }));
-                                    }}
+                                    className="remove-question-button"
+                                    onClick={() => removeQuestion(questionIndex)}
                                 >
                                     Удалить вопрос
                                 </button>
@@ -141,8 +153,7 @@ const TestCreate = () => {
 
                             <div className="form-group">
                                 <label>Текст вопроса:</label>
-                                <input
-                                    type="text"
+                                <textarea
                                     value={question.text}
                                     onChange={(e) => updateQuestion(questionIndex, 'text', e.target.value)}
                                     required
@@ -165,31 +176,21 @@ const TestCreate = () => {
                                 <input
                                     type="number"
                                     value={question.points}
-                                    onChange={(e) => updateQuestion(questionIndex, 'points', parseInt(e.target.value))}
+                                    onChange={(e) => updateQuestion(questionIndex, 'points', parseInt(e.target.value) || 1)}
                                     min="1"
-                                    required
                                 />
                             </div>
 
                             {question.question_type === 'MULTIPLE_CHOICE' && (
                                 <div className="answers-section">
-                                    <div className="answers-header">
-                                        <h4>Варианты ответов</h4>
-                                        <button
-                                            type="button"
-                                            className="add-answer-button"
-                                            onClick={() => addAnswer(questionIndex)}
-                                        >
-                                            Добавить вариант
-                                        </button>
-                                    </div>
+                                    <h4>Варианты ответов:</h4>
                                     {question.answers.map((answer, answerIndex) => (
-                                        <div key={answerIndex} className="answer-input">
+                                        <div key={answerIndex} className="answer-item">
                                             <input
                                                 type="text"
                                                 value={answer.text}
                                                 onChange={(e) => updateAnswer(questionIndex, answerIndex, 'text', e.target.value)}
-                                                placeholder={`Вариант ${answerIndex + 1}`}
+                                                placeholder="Текст ответа"
                                                 required
                                             />
                                             <label>
@@ -198,30 +199,65 @@ const TestCreate = () => {
                                                     name={`correct-${questionIndex}`}
                                                     checked={answer.is_correct}
                                                     onChange={() => {
-                                                        const newAnswers = question.answers.map((a, i) => ({
-                                                            ...a,
-                                                            is_correct: i === answerIndex
-                                                        }));
-                                                        updateQuestion(questionIndex, 'answers', newAnswers);
+                                                        const newQuestions = [...test.questions];
+                                                        newQuestions[questionIndex].answers.forEach((a, i) => {
+                                                            a.is_correct = i === answerIndex;
+                                                        });
+                                                        setTest(prev => ({ ...prev, questions: newQuestions }));
                                                     }}
                                                 />
                                                 Правильный ответ
                                             </label>
-                                            {question.answers.length > 1 && (
-                                                <button
-                                                    type="button"
-                                                    className="remove-answer-button"
-                                                    onClick={() => removeAnswer(questionIndex, answerIndex)}
-                                                >
-                                                    Удалить
-                                                </button>
-                                            )}
+                                            <button
+                                                type="button"
+                                                className="remove-answer-button"
+                                                onClick={() => removeAnswer(questionIndex, answerIndex)}
+                                            >
+                                                Удалить
+                                            </button>
                                         </div>
                                     ))}
+                                    <button
+                                        type="button"
+                                        className="add-answer-button"
+                                        onClick={() => addAnswer(questionIndex)}
+                                    >
+                                        Добавить вариант ответа
+                                    </button>
+                                </div>
+                            )}
+
+                            {question.question_type === 'TEXT_INPUT' && (
+                                <div className="answers-section">
+                                    <h4>Правильный ответ:</h4>
+                                    <div className="answer-item">
+                                        <input
+                                            type="text"
+                                            value={question.answers[0]?.text || ''}
+                                            onChange={(e) => {
+                                                const newQuestions = [...test.questions];
+                                                if (!newQuestions[questionIndex].answers.length) {
+                                                    newQuestions[questionIndex].answers = [{ text: '', is_correct: true }];
+                                                }
+                                                newQuestions[questionIndex].answers[0].text = e.target.value;
+                                                setTest(prev => ({ ...prev, questions: newQuestions }));
+                                            }}
+                                            placeholder="Введите правильный ответ"
+                                            required
+                                        />
+                                    </div>
                                 </div>
                             )}
                         </div>
                     ))}
+
+                    <button
+                        type="button"
+                        className="add-question-button"
+                        onClick={addQuestion}
+                    >
+                        Добавить вопрос
+                    </button>
                 </div>
 
                 <button type="submit" className="submit-button">
