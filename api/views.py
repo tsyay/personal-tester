@@ -144,7 +144,7 @@ class TestViewSet(viewsets.ModelViewSet):
                 return Response({'error': 'Результаты не найдены'}, status=status.HTTP_404_NOT_FOUND)
 
             # Get all student answers for this attempt
-            student_answers = StudentAnswer.objects.filter(attempt=attempt).select_related('question', 'answer')
+            student_answers = StudentAnswer.objects.filter(attempt=attempt).select_related('question', 'selected_answer')
             
             # Calculate score
             total_questions = test.questions.count()
@@ -164,7 +164,7 @@ class TestViewSet(viewsets.ModelViewSet):
                     'answers': [{
                         'question_id': answer.question.id,
                         'question_text': answer.question.text,
-                        'selected_answer': answer.answer.text if answer.answer else None,
+                        'selected_answer': answer.selected_answer.text if answer.selected_answer else answer.text_answer,
                         'is_correct': answer.is_correct
                     } for answer in student_answers]
                 }
@@ -180,44 +180,42 @@ class TestViewSet(viewsets.ModelViewSet):
     def submit(self, request, pk=None):
         try:
             test = self.get_object()
-            answers_data = request.data.get('answers', [])
+            student = request.user  # Student is the user model
             
             # Create test attempt
             attempt = TestAttempt.objects.create(
-                student=request.user,
+                student=student,
                 test=test,
+                started_at=timezone.now(),
                 is_completed=True,
                 completed_at=timezone.now()
             )
-
-            # Get all questions for this test
-            questions = list(test.questions.all())
             
-            # Process each answer
-            for question_index, answer_id in enumerate(answers_data):
-                if question_index < len(questions):
-                    question = questions[question_index]
-                    
-                    # Find the selected answer
-                    selected_answer = Answer.objects.filter(
+            # Process answers
+            answers = request.data.get('answers', [])
+            for question, answer in zip(test.questions.all(), answers):
+                if question.question_type == 'TEXT_INPUT':
+                    # For text input, create a new answer with the student's response
+                    student_answer = StudentAnswer.objects.create(
+                        attempt=attempt,
                         question=question,
-                        id=answer_id
-                    ).first()
-                    
+                        text_answer=answer  # Store the text response
+                    )
+                else:
+                    # For multiple choice, find the selected answer
+                    selected_answer = question.answers.filter(id=answer).first()
                     if selected_answer:
-                        # Create student answer
                         StudentAnswer.objects.create(
                             attempt=attempt,
                             question=question,
-                            answer=selected_answer,
-                            is_correct=selected_answer.is_correct
+                            selected_answer=selected_answer
                         )
-
-            return Response({'message': 'Тест завершен'})
+            
+            return Response({'message': 'Test submitted successfully'})
         except Exception as e:
-            print(f"Error submitting test: {str(e)}")  # Debug log
+            print(f"Error in submit: {str(e)}")  # Debug log
             return Response(
-                {'error': f'Ошибка при сохранении ответов: {str(e)}'}, 
+                {'error': str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 

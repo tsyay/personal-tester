@@ -111,13 +111,24 @@ class TestAttempt(models.Model):
 class StudentAnswer(models.Model):
     attempt = models.ForeignKey(TestAttempt, on_delete=models.CASCADE, related_name='answers')
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
-    answer = models.ForeignKey(Answer, on_delete=models.CASCADE, null=True, blank=True)
+    selected_answer = models.ForeignKey(Answer, on_delete=models.SET_NULL, null=True, blank=True)
     text_answer = models.TextField(null=True, blank=True)
-    is_correct = models.BooleanField(null=True)
-    answered_at = models.DateTimeField(auto_now_add=True)
+    is_correct = models.BooleanField(default=False)
+
+    def save(self, *args, **kwargs):
+        if self.selected_answer:
+            self.is_correct = self.selected_answer.is_correct
+        elif self.text_answer is not None:
+            # For text input questions, check if the answer matches any correct answer
+            correct_answers = self.question.answers.filter(is_correct=True)
+            self.is_correct = any(
+                correct_answer.text.lower().strip() == self.text_answer.lower().strip()
+                for correct_answer in correct_answers
+            )
+        super().save(*args, **kwargs)
 
     class Meta:
-        ordering = ['answered_at']
+        ordering = ['question__id']
 
     def __str__(self):
         return f"Answer for {self.question} by {self.attempt.student.full_name}"

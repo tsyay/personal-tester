@@ -34,8 +34,13 @@ const TestTaking = () => {
     const handleSubmit = async () => {
         try {
             const token = localStorage.getItem('access_token');
-            // Convert answers object to array of answer IDs
-            const answerIds = test.questions.map(question => answers[question.id] || null);
+            // Convert answers object to array of answer IDs or text responses
+            const answerIds = test.questions.map(question => {
+                if (question.question_type === 'TEXT_INPUT') {
+                    return answers[question.id] || ''; // Return text response for text input
+                }
+                return answers[question.id] || null; // Return answer ID for multiple choice
+            });
             
             await axios.post(`http://localhost:8000/api/tests/${testId}/submit/`, 
                 { answers: answerIds },
@@ -62,22 +67,39 @@ const TestTaking = () => {
                         <h3>Вопрос {question.id}</h3>
                         <p>{question.text}</p>
                         <div className="options-container">
-                            {question.answers && question.answers.map((answer) => (
-                                <div key={answer.id} className="option">
+                            {question.question_type === 'MULTIPLE_CHOICE' ? (
+                                question.answers && question.answers.map((answer) => (
+                                    <div key={answer.id} className="option">
+                                        <input
+                                            type="radio"
+                                            name={`question-${question.id}`}
+                                            checked={answers[question.id] === answer.id}
+                                            onChange={() => {
+                                                setAnswers(prev => ({
+                                                    ...prev,
+                                                    [question.id]: answer.id
+                                                }));
+                                            }}
+                                        />
+                                        <label>{answer.text}</label>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-input-container">
                                     <input
-                                        type="radio"
-                                        name={`question-${question.id}`}
-                                        checked={answers[question.id] === answer.id}
-                                        onChange={() => {
+                                        type="text"
+                                        value={answers[question.id] || ''}
+                                        onChange={(e) => {
                                             setAnswers(prev => ({
                                                 ...prev,
-                                                [question.id]: answer.id
+                                                [question.id]: e.target.value
                                             }));
                                         }}
+                                        placeholder="Введите ваш ответ"
+                                        required
                                     />
-                                    <label>{answer.text}</label>
                                 </div>
-                            ))}
+                            )}
                         </div>
                     </div>
                 ))}
