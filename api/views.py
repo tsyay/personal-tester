@@ -6,12 +6,13 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django.utils import timezone
-from .models import Test, Question, Answer, TestAttempt, StudentAnswer, Student, Article, ArticlePage, ArticleProgress
+from .models import Test, Question, Answer, TestAttempt, StudentAnswer, Student, Article, ArticlePage, ArticleProgress, Course, Position
 from .serializers import (
     StudentSerializer, StudentCreateSerializer, LoginSerializer,
     TestSerializer, QuestionSerializer, AnswerSerializer,
     TestAttemptSerializer, StudentAnswerSerializer,
-    ArticleSerializer, ArticleCreateSerializer, ArticlePageSerializer, ArticleProgressSerializer
+    ArticleSerializer, ArticleCreateSerializer, ArticlePageSerializer, ArticleProgressSerializer,
+    CourseSerializer, PositionSerializer
 )
 from django.db import models
 from django.utils.text import slugify
@@ -38,6 +39,20 @@ class StudentViewSet(viewsets.ModelViewSet):
     def me(self, request):
         serializer = self.get_serializer(request.user)
         return Response(serializer.data)
+
+    @action(detail=False, methods=['post'])
+    def change_position(self, request):
+        user = request.user
+        if not user.check_password(request.data.get('password')):
+            return Response({'error': 'Неверный пароль'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        new_position = request.data.get('position')
+        if new_position not in ['Официант', 'Бармен', 'Менеджер', 'Уборщик', 'Повар']:
+            return Response({'error': 'Неверная должность'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        user.position = new_position
+        user.save()
+        return Response(self.get_serializer(user).data)
 
     @action(detail=False, methods=['post'])
     def change_email(self, request):
@@ -124,13 +139,27 @@ class StudentViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
 
+class PositionViewSet(viewsets.ModelViewSet):
+    queryset = Position.objects.all()
+    serializer_class = PositionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Position.objects.all()
+
 class TestViewSet(viewsets.ModelViewSet):
     queryset = Test.objects.all()
     serializer_class = TestSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Test.objects.prefetch_related('questions').all()
+        user = self.request.user
+        if user.role in ['TEACHER', 'ADMIN']:
+            return Test.objects.prefetch_related('questions', 'positions').all()
+        return Test.objects.filter(
+            is_published=True,
+            positions__in=[user.position]
+        ).prefetch_related('questions', 'positions').distinct()
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -142,7 +171,33 @@ class TestViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     def perform_create(self, serializer):
+        if self.request.user.role not in ['TEACHER', 'ADMIN']:
+            raise permissions.PermissionDenied('Только преподаватели и администраторы могут создавать тесты')
         serializer.save(creator=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        if request.user.role not in ['TEACHER', 'ADMIN']:
+            return Response(
+                {'error': 'Только преподаватели и администраторы могут создавать тесты'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().create(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        if request.user.role not in ['TEACHER', 'ADMIN']:
+            return Response(
+                {'error': 'Только преподаватели и администраторы могут редактировать тесты'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        if request.user.role not in ['TEACHER', 'ADMIN']:
+            return Response(
+                {'error': 'Только преподаватели и администраторы могут удалять тесты'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().destroy(request, *args, **kwargs)
 
     @action(detail=True, methods=['get'])
     def results(self, request, pk=None):
@@ -294,14 +349,12 @@ class ArticleViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        logger.info(f"Getting articles for user {user.id} with role {user.role}")
-        if user.role == 'TEACHER':
-            articles = Article.objects.filter(creator=user)
-            logger.info(f"Teacher articles count: {articles.count()}")
-            return articles
-        articles = Article.objects.filter(is_published=True)
-        logger.info(f"Published articles count: {articles.count()}")
-        return articles
+        if user.role in ['TEACHER', 'ADMIN']:
+            return Article.objects.prefetch_related('positions').all()
+        return Article.objects.filter(
+            is_published=True,
+            positions__in=[user.position]
+        ).prefetch_related('positions').distinct()
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -309,9 +362,16 @@ class ArticleViewSet(viewsets.ModelViewSet):
         return ArticleSerializer
 
     def perform_create(self, serializer):
+        if self.request.user.role not in ['TEACHER', 'ADMIN']:
+            raise permissions.PermissionDenied('Только преподаватели и администраторы могут создавать статьи')
         serializer.save(creator=self.request.user)
 
     def create(self, request, *args, **kwargs):
+        if request.user.role not in ['TEACHER', 'ADMIN']:
+            return Response(
+                {'error': 'Только преподаватели и администраторы могут создавать статьи'},
+                status=status.HTTP_403_FORBIDDEN
+            )
         serializer = self.get_serializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
@@ -319,12 +379,25 @@ class ArticleViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def update(self, request, *args, **kwargs):
+        if request.user.role not in ['TEACHER', 'ADMIN']:
+            return Response(
+                {'error': 'Только преподаватели и администраторы могут редактировать статьи'},
+                status=status.HTTP_403_FORBIDDEN
+            )
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
         return Response(serializer.data)
+
+    def destroy(self, request, *args, **kwargs):
+        if request.user.role not in ['TEACHER', 'ADMIN']:
+            return Response(
+                {'error': 'Только преподаватели и администраторы могут удалять статьи'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().destroy(request, *args, **kwargs)
 
     def retrieve(self, request, *args, **kwargs):
         logger.info(f"Retrieving article with ID: {kwargs.get('pk')}")
@@ -424,4 +497,114 @@ class ArticleViewSet(viewsets.ModelViewSet):
         except ArticlePage.DoesNotExist:
             return Response({'error': 'Page not found'}, 
                           status=status.HTTP_404_NOT_FOUND)
+
+class CourseViewSet(viewsets.ModelViewSet):
+    queryset = Course.objects.all()
+    serializer_class = CourseSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role in ['TEACHER', 'ADMIN']:
+            return Course.objects.prefetch_related('articles', 'tests', 'positions').all()
+        return Course.objects.filter(
+            positions__in=[user.position]
+        ).prefetch_related('articles', 'tests', 'positions').distinct()
+
+    def perform_create(self, serializer):
+        if self.request.user.role not in ['TEACHER', 'ADMIN']:
+            raise permissions.PermissionDenied('Только преподаватели и администраторы могут создавать курсы')
+        serializer.save()
+
+    def update(self, request, *args, **kwargs):
+        if request.user.role not in ['TEACHER', 'ADMIN']:
+            return Response(
+                {'error': 'Только преподаватели и администраторы могут редактировать курсы'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        if request.user.role not in ['TEACHER', 'ADMIN']:
+            return Response(
+                {'error': 'Только преподаватели и администраторы могут удалять курсы'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().destroy(request, *args, **kwargs)
+
+    @action(detail=True, methods=['post'])
+    def add_article(self, request, pk=None):
+        course = self.get_object()
+        article_id = request.data.get('article_id')
+        try:
+            article = Article.objects.get(id=article_id)
+            course.articles.add(article)
+            return Response(self.get_serializer(course).data)
+        except Article.DoesNotExist:
+            return Response({'error': 'Статья не найдена'}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=True, methods=['post'])
+    def add_test(self, request, pk=None):
+        course = self.get_object()
+        test_id = request.data.get('test_id')
+        try:
+            test = Test.objects.get(id=test_id)
+            course.tests.add(test)
+            return Response(self.get_serializer(course).data)
+        except Test.DoesNotExist:
+            return Response({'error': 'Тест не найден'}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=True, methods=['post'])
+    def remove_article(self, request, pk=None):
+        course = self.get_object()
+        article_id = request.data.get('article_id')
+        try:
+            article = Article.objects.get(id=article_id)
+            course.articles.remove(article)
+            return Response(self.get_serializer(course).data)
+        except Article.DoesNotExist:
+            return Response({'error': 'Статья не найдена'}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=True, methods=['post'])
+    def remove_test(self, request, pk=None):
+        course = self.get_object()
+        test_id = request.data.get('test_id')
+        try:
+            test = Test.objects.get(id=test_id)
+            course.tests.remove(test)
+            return Response(self.get_serializer(course).data)
+        except Test.DoesNotExist:
+            return Response({'error': 'Тест не найден'}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=True, methods=['post'])
+    def add_position(self, request, pk=None):
+        if request.user.role not in ['TEACHER', 'ADMIN']:
+            return Response(
+                {'error': 'Только преподаватели и администраторы могут управлять должностями курса'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        course = self.get_object()
+        position_id = request.data.get('position_id')
+        try:
+            position = Position.objects.get(id=position_id)
+            course.positions.add(position)
+            return Response(self.get_serializer(course).data)
+        except Position.DoesNotExist:
+            return Response({'error': 'Должность не найдена'}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=True, methods=['post'])
+    def remove_position(self, request, pk=None):
+        if request.user.role not in ['TEACHER', 'ADMIN']:
+            return Response(
+                {'error': 'Только преподаватели и администраторы могут управлять должностями курса'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        course = self.get_object()
+        position_id = request.data.get('position_id')
+        try:
+            position = Position.objects.get(id=position_id)
+            course.positions.remove(position)
+            return Response(self.get_serializer(course).data)
+        except Position.DoesNotExist:
+            return Response({'error': 'Должность не найдена'}, status=status.HTTP_404_NOT_FOUND)
 

@@ -1,99 +1,120 @@
 .test-results-container {
     max-width: 800px;
-    margin: 2rem auto;
+    margin: 0 auto;
     padding: 2rem;
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.test-results-container h1 {
+    font-size: 1.875rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 2rem;
 }
 
 .score-section {
-    text-align: center;
-    margin: 2rem 0;
-    padding: 1.5rem;
-    background: #f8f9fa;
-    border-radius: 8px;
+    background-color: white;
+    border-radius: 1rem;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
 }
 
 .score-section h2 {
-    color: #2c3e50;
-    font-size: 2rem;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1f2937;
     margin-bottom: 0.5rem;
 }
 
+.score-section p {
+    color: #6b7280;
+    font-size: 0.875rem;
+}
+
 .answers-section {
-    margin-top: 2rem;
+    margin-bottom: 2rem;
+}
+
+.answers-section h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 1rem;
 }
 
 .answer-card {
-    margin-bottom: 1.5rem;
+    background-color: white;
+    border-radius: 0.75rem;
     padding: 1.5rem;
-    border-radius: 8px;
-    background: #f8f9fa;
-    border-left: 4px solid #ddd;
+    margin-bottom: 1rem;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    border-left: 4px solid #e5e7eb;
 }
 
 .answer-card.correct {
-    border-left-color: #28a745;
+    border-left-color: #10b981;
 }
 
 .answer-card.incorrect {
-    border-left-color: #dc3545;
+    border-left-color: #ef4444;
+}
+
+.answer-card h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 0.5rem;
 }
 
 .question-text {
-    font-size: 1.1rem;
-    color: #2c3e50;
-    margin: 0.5rem 0;
+    font-size: 1rem;
+    color: #374151;
+    margin-bottom: 1rem;
+    line-height: 1.5;
 }
 
 .answer-text {
-    color: #666;
-    margin: 0.5rem 0;
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-bottom: 0.5rem;
 }
 
 .result-status {
-    font-weight: bold;
-    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
 }
 
-.result-status.correct {
-    color: #28a745;
+.answer-card.correct .result-status {
+    color: #10b981;
 }
 
-.result-status.incorrect {
-    color: #dc3545;
+.answer-card.incorrect .result-status {
+    color: #ef4444;
 }
 
 .back-button {
-    display: block;
-    width: 100%;
-    max-width: 300px;
-    margin: 2rem auto 0;
-    padding: 0.8rem 1.5rem;
-    background: #007bff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: background-color 0.2s;
+    display: inline-flex;
+    align-items: center;
+    padding: 0.75rem 1.5rem;
+    background-color: #f3f4f6;
+    color: #4b5563;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    transition: all 0.2s;
 }
 
 .back-button:hover {
-    background: #0056b3;
+    background-color: #e5e7eb;
 }
 
-.loading {
-    text-align: center;
-    padding: 2rem;
-    font-size: 1.2rem;
-    color: #666;
-}
+@media (max-width: 640px) {
+    .test-results-container {
+        padding: 1rem;
+    }
 
-.error {
-    text-align: center;
-    padding: 2rem;
-    color: #dc3545;
-    font-size: 1.2rem;
+    .score-section,
+    .answer-card {
+        padding: 1rem;
+    }
 } 

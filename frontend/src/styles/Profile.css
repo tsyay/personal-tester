@@ -1,7 +1,9 @@
 .profile-container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 40px;
+    background-color: #f8fafc;
+    min-height: 100vh;
 }
 
 .profile-container h1 {
@@ -48,73 +50,246 @@
 }
 
 .form-group {
-    margin-bottom: 15px;
+    margin-bottom: 1.5rem;
 }
 
 .form-group label {
     display: block;
-    margin-bottom: 5px;
-    color: #666;
+    margin-bottom: 0.5rem;
+    color: #4b5563;
+    font-weight: 500;
 }
 
-.form-group input,
-.form-group select {
+.form-group input {
     width: 100%;
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
+    padding: 0.75rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    transition: all 0.3s ease;
 }
 
-.form-group input:focus,
-.form-group select:focus {
+.form-group input:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    border-color: #4b5563;
+    box-shadow: 0 0 0 2px rgba(75, 85, 99, 0.1);
 }
 
 .submit-button {
-    background-color: #007bff;
+    background-color: #1f2937;
     color: white;
     border: none;
-    padding: 10px 20px;
-    border-radius: 4px;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
     cursor: pointer;
-    font-size: 14px;
+    transition: all 0.3s ease;
     width: 100%;
 }
 
 .submit-button:hover {
-    background-color: #0056b3;
+    background-color: #111827;
 }
 
 .error-message {
-    background-color: #f8d7da;
-    color: #721c24;
-    padding: 10px;
-    border-radius: 4px;
-    margin-bottom: 20px;
+    background-color: #fee2e2;
+    color: #991b1b;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
 }
 
 .success-message {
-    background-color: #d4edda;
-    color: #155724;
-    padding: 10px;
-    border-radius: 4px;
-    margin-bottom: 20px;
+    background-color: #dcfce7;
+    color: #166534;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
 }
 
 .loading {
     text-align: center;
-    padding: 20px;
-    color: #666;
+    padding: 2rem;
+    color: #4b5563;
 }
 
 .error {
-    color: #dc3545;
     text-align: center;
-    padding: 20px;
-    background-color: #f8d7da;
-    border-radius: 4px;
-    margin: 20px 0;
+    padding: 2rem;
+    color: #991b1b;
+    background-color: #fee2e2;
+    border-radius: 0.5rem;
+    margin: 2rem 0;
+}
+
+.profile-header {
+    background: white;
+    color: #1f2937;
+    padding: 3rem 0;
+    margin-bottom: 3rem;
+}
+
+.profile-card {
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    margin-bottom: 2rem;
+    padding: 2rem;
+}
+
+.profile-card:hover {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.profile-avatar {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 50%;
+    background-color: #f3f4f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.profile-avatar:hover {
+    transform: scale(1.05);
+}
+
+.stat-card {
+    background: white;
+    border-radius: 1rem;
+    padding: 2rem;
+    transition: all 0.3s ease;
+    margin-bottom: 1rem;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.stat-icon {
+    padding: 1rem;
+    border-radius: 0.75rem;
+    transition: all 0.3s ease;
+}
+
+.stat-icon:hover {
+    transform: scale(1.1);
+}
+
+.progress-bar {
+    height: 0.75rem;
+    background-color: #e5e7eb;
+    border-radius: 9999px;
+    overflow: hidden;
+    margin: 1rem 0;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    border-radius: 9999px;
+    transition: width 0.5s ease;
+}
+
+.progress-bar-fill.blue {
+    background: linear-gradient(90deg, #4b5563 0%, #1f2937 100%);
+}
+
+.progress-bar-fill.green {
+    background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
+}
+
+.progress-bar-fill.yellow {
+    background: linear-gradient(90deg, #eab308 0%, #ca8a04 100%);
+}
+
+.progress-bar-fill.purple {
+    background: linear-gradient(90deg, #a855f7 0%, #9333ea 100%);
+}
+
+.nav-button {
+    padding: 1rem 2rem;
+    border-radius: 0.75rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    margin: 0 0.5rem;
+}
+
+.nav-button:hover {
+    transform: translateY(-1px);
+}
+
+.nav-button.active {
+    background-color: #f3f4f6;
+    color: #1f2937;
+}
+
+.nav-button:not(.active):hover {
+    background-color: #f1f5f9;
+}
+
+.progress-circle {
+    width: 12rem;
+    height: 12rem;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    margin: 2rem auto;
+}
+
+.progress-circle:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.badge {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    margin: 0.5rem 0;
+}
+
+.badge:hover {
+    transform: translateY(-1px);
+}
+
+.badge.blue {
+    background-color: #f3f4f6;
+    color: #1f2937;
+}
+
+.badge.green {
+    background-color: #dcfce7;
+    color: #16a34a;
+}
+
+.badge.purple {
+    background-color: #f3e8ff;
+    color: #9333ea;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.achievement-badge {
+    animation: pulse 2s infinite;
 } 

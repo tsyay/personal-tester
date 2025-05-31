@@ -1,20 +1,26 @@
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
-from .models import Student, Test, Question, Answer, TestAttempt, StudentAnswer, Article, ArticlePage, ArticleProgress
+from .models import Student, Test, Question, Answer, TestAttempt, StudentAnswer, Article, ArticlePage, ArticleProgress, Course, Position
+
+class PositionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Position
+        fields = ['id', 'name', 'description']
 
 class StudentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
-        fields = ('id', 'username', 'full_name', 'role')
+        fields = ('id', 'username', 'full_name', 'role', 'position')
         read_only_fields = ('id',)
 
 class StudentCreateSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     password2 = serializers.CharField(write_only=True, required=True)
+    position = serializers.CharField(default='WAITER', required=False)
 
     class Meta:
         model = Student
-        fields = ('username', 'password', 'password2', 'full_name', 'role')
+        fields = ('username', 'password', 'password2', 'full_name', 'role', 'position')
 
     def validate(self, attrs):
         if attrs['password'] != attrs['password2']:
@@ -57,31 +63,37 @@ class StudentAnswerSerializer(serializers.ModelSerializer):
 class TestSerializer(serializers.ModelSerializer):
     questions = QuestionSerializer(many=True, read_only=True)
     creator = StudentSerializer(read_only=True)
+    positions = PositionSerializer(many=True, read_only=True)
 
     class Meta:
         model = Test
         fields = ('id', 'title', 'description', 'creator', 'test_type', 
-                 'created_at', 'updated_at', 'is_published', 'time_limit', 'questions')
+                 'created_at', 'updated_at', 'is_published', 'time_limit', 'questions', 'positions')
         read_only_fields = ('creator', 'created_at', 'updated_at')
 
     def create(self, validated_data):
-        # Get questions data from the request data
+        positions_data = self.context.get('request').data.get('positions', [])
         questions_data = self.context.get('request').data.get('questions', [])
         
-        # Create test without questions
         test = Test.objects.create(**validated_data)
+        
+        # Add positions
+        for position_id in positions_data:
+            try:
+                position = Position.objects.get(id=position_id)
+                test.positions.add(position)
+            except Position.DoesNotExist:
+                pass
         
         # Create and add questions with their answers
         questions = []
         for question_data in questions_data:
-            # Create question
             question = Question.objects.create(
                 text=question_data.get('text'),
                 question_type=question_data.get('question_type', 'MULTIPLE_CHOICE'),
                 points=question_data.get('points', 1)
             )
             
-            # Create answers for the question
             answers_data = question_data.get('answers', [])
             for answer_data in answers_data:
                 Answer.objects.create(
@@ -92,7 +104,6 @@ class TestSerializer(serializers.ModelSerializer):
             
             questions.append(question)
         
-        # Set questions using the proper method
         test.questions.set(questions)
         return test
 
@@ -164,11 +175,12 @@ class ArticleSerializer(serializers.ModelSerializer):
     pages = ArticlePageSerializer(many=True, read_only=True)
     creator = StudentSerializer(read_only=True)
     progress = serializers.SerializerMethodField()
+    positions = PositionSerializer(many=True, read_only=True)
 
     class Meta:
         model = Article
         fields = ['id', 'title', 'description', 'creator', 'created_at', 'updated_at', 
-                 'is_published', 'featured_image', 'total_pages', 'pages', 'progress']
+                 'is_published', 'featured_image', 'total_pages', 'pages', 'progress', 'positions']
 
     def get_progress(self, obj):
         request = self.context.get('request')
@@ -204,4 +216,36 @@ class ArticleCreateSerializer(serializers.ModelSerializer):
 class ArticleProgressSerializer(serializers.ModelSerializer):
     class Meta:
         model = ArticleProgress
-        fields = ['current_page', 'progress_percentage', 'is_completed', 'last_read_at'] 
+        fields = ['current_page', 'progress_percentage', 'is_completed', 'last_read_at']
+
+class CourseSerializer(serializers.ModelSerializer):
+    articles = serializers.SerializerMethodField()
+    tests = serializers.SerializerMethodField()
+    positions = PositionSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Course
+        fields = ['id', 'title', 'articles', 'tests', 'positions', 'created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at']
+
+    def get_articles(self, obj):
+        articles = obj.articles.all()
+        return [{
+            'id': article.id,
+            'title': article.title,
+            'description': article.description,
+            'total_pages': article.total_pages,
+            'is_published': article.is_published,
+            'created_at': article.created_at
+        } for article in articles]
+
+    def get_tests(self, obj):
+        tests = obj.tests.all()
+        return [{
+            'id': test.id,
+            'title': test.title,
+            'description': test.description,
+            'time_limit': test.time_limit,
+            'is_published': test.is_published,
+            'created_at': test.created_at
+        } for test in tests] 

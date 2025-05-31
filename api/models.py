@@ -9,6 +9,13 @@ class Student(AbstractUser):
         ADMIN = 'ADMIN', 'Administrator'
         TEACHER = 'TEACHER', 'Teacher'
 
+    class Position(models.TextChoices):
+        WAITER = 'WAITER', 'Официант'
+        BARTENDER = 'BARTENDER', 'Бармен'
+        MANAGER = 'MANAGER', 'Менеджер'
+        CLEANER = 'CLEANER', 'Уборщик'
+        COOK = 'COOK', 'Повар'
+
     # Override username field to use email instead
     username = models.EmailField(
         'Email address',
@@ -24,6 +31,14 @@ class Student(AbstractUser):
         max_length=10,
         choices=Role.choices,
         default=Role.STUDENT,
+    )
+
+    # Add position field
+    position = models.CharField(
+        max_length=20,
+        choices=Position.choices,
+        default=Position.WAITER,
+        verbose_name='Должность'
     )
     
     # Add full name field
@@ -58,12 +73,20 @@ class Test(models.Model):
     is_published = models.BooleanField(default=False)
     time_limit = models.IntegerField(default=0, help_text="Time limit in minutes (0 for no limit)")
     questions = models.ManyToManyField('Question', related_name='tests', blank=True)
+    positions = models.ManyToManyField('Position', related_name='tests', blank=True)
 
     class Meta:
         ordering = ['-created_at']
 
     def __str__(self):
         return self.title
+
+class Position(models.Model):
+    name = models.CharField(max_length=50, unique=True)
+    description = models.TextField(blank=True)
+
+    def __str__(self):
+        return self.name
 
 class Question(models.Model):
     text = models.TextField()
@@ -142,6 +165,7 @@ class Article(models.Model):
     is_published = models.BooleanField(default=False)
     featured_image = models.ImageField(upload_to='articles/', null=True, blank=True)
     total_pages = models.IntegerField(default=1)
+    positions = models.ManyToManyField(Position, related_name='articles', blank=True)
 
     def __str__(self):
         return self.title
@@ -178,3 +202,19 @@ class ArticleProgress(models.Model):
     @property
     def progress_percentage(self):
         return (self.current_page / self.article.total_pages) * 100 if self.article.total_pages > 0 else 0
+
+class Course(models.Model):
+    title = models.CharField(max_length=200, verbose_name="Название курса")
+    articles = models.ManyToManyField(Article, related_name='courses', blank=True, verbose_name="Статьи")
+    tests = models.ManyToManyField(Test, related_name='courses', blank=True, verbose_name="Тесты")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата обновления")
+    positions = models.ManyToManyField(Position, related_name='courses', blank=True)
+
+    class Meta:
+        verbose_name = "Курс"
+        verbose_name_plural = "Курсы"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.title
