@@ -8,7 +8,8 @@ const UserCreate = () => {
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
         full_name: '',
-        email: ''
+        email: '',
+        position: 'WAITER'
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -48,8 +49,7 @@ const UserCreate = () => {
                 username: formData.email,
                 password: password,
                 password2: password,
-                role: 'STUDENT',
-                position: 'WAITER'
+                role: 'STUDENT'
             });
 
             const userInfo = {
@@ -69,7 +69,8 @@ const UserCreate = () => {
             // Сбрасываем форму
             setFormData({
                 full_name: '',
-                email: ''
+                email: '',
+                position: 'WAITER'
             });
 
             // Сбрасываем статус копирования через 3 секунды
@@ -121,6 +122,24 @@ const UserCreate = () => {
                             required
                             placeholder="Введите email"
                         />
+                    </div>
+
+                    <div className="form-group">
+                        <label htmlFor="position">Должность</label>
+                        <select
+                            id="position"
+                            name="position"
+                            value={formData.position}
+                            onChange={handleChange}
+                            required
+                            className="position-select"
+                        >
+                            <option value="WAITER">Официант</option>
+                            <option value="BARTENDER">Бармен</option>
+                            <option value="MANAGER">Менеджер</option>
+                            <option value="CLEANER">Уборщик</option>
+                            <option value="COOK">Повар</option>
+                        </select>
                     </div>
 
                     <button 

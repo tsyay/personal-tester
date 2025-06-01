@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, Filter, BookOpen, Clock, User, FileText } from 'lucide-react';
+import { Search, Filter, BookOpen, Clock, User, FileText, Plus, Trash2 } from 'lucide-react';
 import axios from 'axios';
 import '../styles/Articles.css';
 
-const ArticleCard = ({ article }) => {
+const ArticleCard = ({ article, onDelete, canDelete }) => {
   const navigate = useNavigate();
 
   const handleReadArticle = () => {
@@ -14,20 +14,22 @@ const ArticleCard = ({ article }) => {
   return (
     <div className="article-card">
       <div className="article-card-header">
-        <div className="flex items-start gap-3">
+        <div className="article-header-content">
           <div className="article-icon">
             <BookOpen className="h-5 w-5" />
           </div>
-          <div className="min-w-0 flex-1">
+          <div className="article-header-info">
             <h3 className="article-title">{article.title}</h3>
-            <div className="flex items-center gap-2 mt-1.5">
-              <div className="flex items-center gap-1.5 text-sm text-gray-500">
-                <User className="h-4 w-4" />
-                <span>{article.creator.full_name}</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-sm text-gray-500">
-                <Clock className="h-4 w-4" />
-                <span>{new Date(article.created_at).toLocaleDateString()}</span>
+            <div className="article-info">
+              <div className="article-meta">
+                <div className="article-meta-item">
+                  <User className="h-4 w-4" />
+                  <span>{article.creator.full_name}</span>
+                </div>
+                <div className="article-meta-item">
+                  <Clock className="h-4 w-4" />
+                  <span>{new Date(article.created_at).toLocaleDateString()}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -35,38 +37,41 @@ const ArticleCard = ({ article }) => {
       </div>
 
       <div className="article-card-content">
-        <div className="flex items-center justify-between">
-          <span className="article-pages">
-            <FileText className="h-4 w-4 inline-block mr-1" />
-            {article.total_pages} страниц
-          </span>
-          {!article.is_published && (
-            <span className="article-badge badge-draft">
-              Черновик
-            </span>
-          )}
-        </div>
         <p className="article-description mt-2">{article.description}</p>
       </div>
 
       <div className="article-card-footer">
-        <button 
-          onClick={handleReadArticle}
-          className="read-article-button"
-        >
-          Читать статью
-        </button>
+        <div className="article-actions">
+          <button 
+            onClick={handleReadArticle}
+            className="read-article-button"
+          >
+            Читать статью
+          </button>
+          {canDelete && (
+            <button
+              onClick={() => onDelete(article.id)}
+              className="delete-article-button"
+              title="Удалить статью"
+            >
+              <Trash2 className="h-4 w-4" />
+              Удалить
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
 };
 
 const Articles = () => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [user, setUser] = useState(null);
 
   const statuses = [
     { id: 'all', name: 'Все статьи' },
@@ -75,30 +80,57 @@ const Articles = () => {
   ];
 
   useEffect(() => {
-    const fetchArticles = async () => {
+    const fetchUserAndArticles = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('http://localhost:8000/api/articles/', {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-          }
-        });
+        const [userResponse, articlesResponse] = await Promise.all([
+          axios.get('http://localhost:8000/api/students/me/', {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+            }
+          }),
+          axios.get('http://localhost:8000/api/articles/', {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+            }
+          })
+        ]);
         
-        if (Array.isArray(response.data)) {
-          setArticles(response.data);
+        setUser(userResponse.data);
+        if (Array.isArray(articlesResponse.data)) {
+          setArticles(articlesResponse.data);
         } else {
           setError('Неверный формат данных статей');
         }
       } catch (err) {
-        console.error('Error fetching articles:', err);
-        setError('Не удалось загрузить статьи');
+        console.error('Error fetching data:', err);
+        setError('Не удалось загрузить данные');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchArticles();
+    fetchUserAndArticles();
   }, []);
+
+  const handleDeleteArticle = async (articleId) => {
+    if (!window.confirm('Вы уверены, что хотите удалить эту статью?')) {
+      return;
+    }
+
+    try {
+      await axios.delete(`http://localhost:8000/api/articles/${articleId}/`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        }
+      });
+      
+      setArticles(articles.filter(article => article.id !== articleId));
+    } catch (err) {
+      console.error('Error deleting article:', err);
+      setError('Ошибка при удалении статьи');
+    }
+  };
 
   const filteredArticles = articles.filter(article => {
     const matchesSearch = article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -108,6 +140,9 @@ const Articles = () => {
                          (selectedStatus === 'draft' && !article.is_published);
     return matchesSearch && matchesStatus;
   });
+
+  const canCreateArticle = user && (user.role === 'TEACHER' || user.role === 'ADMIN');
+  const canDeleteArticle = user && (user.role === 'TEACHER' || user.role === 'ADMIN');
 
   if (loading) {
     return (
@@ -128,46 +163,32 @@ const Articles = () => {
   return (
     <div className="articles-container">
       <div className="articles-header">
-        <h1>Статьи</h1>
-        <Link 
-          to="/articles/create"
-          className="create-article-button"
-        >
-          Создать статью
-        </Link>
-      </div>
-
-      <div className="search-filters">
-        <div className="search-container">
-          <input
-            type="text"
-            placeholder="Поиск статей..."
-            className="search-input"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <Search className="search-icon" />
+        <div className="header-content">
+          <h1>Статьи</h1>
+          <p className="header-description">
+            Выберите статью для чтения или создайте новую
+          </p>
         </div>
-        <select
-          className="filter-select"
-          value={selectedStatus}
-          onChange={(e) => setSelectedStatus(e.target.value)}
-        >
-          {statuses.map(status => (
-            <option key={status.id} value={status.id}>
-              {status.name}
-            </option>
-          ))}
-        </select>
+        {canCreateArticle && (
+          <button 
+            onClick={() => navigate('/articles/create')}
+            className="create-article-button"
+          >
+            <Plus className="h-5 w-5" />
+            Создать статью
+          </button>
+        )}
       </div>
 
-      <section>
-        <h2 className="text-2xl font-semibold mb-6">Доступные статьи</h2>
+      <section className="articles-section">
+        <h2 className="section-title">Доступные статьи</h2>
         <div className="articles-grid">
           {filteredArticles.map((article) => (
             <ArticleCard
               key={article.id}
               article={article}
+              onDelete={handleDeleteArticle}
+              canDelete={canDeleteArticle}
             />
           ))}
         </div>

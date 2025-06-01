@@ -191,14 +191,6 @@ const Profile = () => {
           </div>
         </div>
 
-        {/* Блоки статистики */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <StatCard value="18" label="Пройдено курсов" icon={BookOpen} color="blue" />
-          <StatCard value="42ч" label="Время обучения" icon={Clock} color="green" />
-          <StatCard value="3" label="Сертификатов" icon={Award} color="purple" />
-          <StatCard value="4.7" label="Средний балл" icon={Star} color="yellow" />
-        </div>
-
         {error && <div className="error-message">{error}</div>}
         {success && <div className="success-message">{success}</div>}
 

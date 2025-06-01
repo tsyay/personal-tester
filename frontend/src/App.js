@@ -8,6 +8,7 @@ import Profile from './pages/Profile';
 import Login from './components/Login';
 import Articles from './pages/Articles';
 import ArticleView from './pages/ArticleView';
+import ArticleCreate from './pages/ArticleCreate';
 import Courses from './pages/Courses';
 import CreateCourse from './pages/CreateCourse';
 import CourseView from './pages/CourseView';
@@ -20,33 +21,33 @@ import { UserProvider } from './context/UserContext';
 import './styles/main.css';
 
 function App() {
-    return (
-        <UserProvider>
-            <Router>
-                <div className="min-h-screen bg-gray-50">
-                    <Header />
-                    <Routes>
-                        <Route path="/" element={<Home />} />
-                        <Route path="/learning" element={<Learning />} />
-                        <Route path="/tests" element={<Tests />} />
-                        <Route path="/tests/create" element={<TestCreate />} />
-                        <Route path="/tests/:testId/take" element={<TestTaking />} />
-                        <Route path="/tests/:testId/results" element={<TestResults />} />
-                        <Route path="/profile" element={<Profile />} />
-                        <Route path="/login" element={<Login />} />
-                        <Route path="/articles" element={<Articles />} />
-                        <Route path="/articles/:id" element={<ArticleView />} />
-                        <Route path="/articles/create" element={<Articles />} />
-                        <Route path="/courses" element={<Courses />} />
-                        <Route path="/courses/create" element={<CreateCourse />} />
-                        <Route path="/courses/:id" element={<CourseView />} />
-                        <Route path="/users" element={<UsersManagement />} />
-                        <Route path="/users/create" element={<UserCreate />} />
-                    </Routes>
-                </div>
-            </Router>
-        </UserProvider>
-    );
+  return (
+    <UserProvider>
+      <Router>
+        <div className="min-h-screen bg-gray-50">
+          <Header />
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/learning" element={<Learning />} />
+            <Route path="/tests" element={<Tests />} />
+            <Route path="/tests/create" element={<TestCreate />} />
+            <Route path="/tests/:testId/take" element={<TestTaking />} />
+            <Route path="/tests/:testId/results" element={<TestResults />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/articles" element={<Articles />} />
+            <Route path="/articles/:id" element={<ArticleView />} />
+            <Route path="/articles/create" element={<ArticleCreate />} />
+            <Route path="/courses" element={<Courses />} />
+            <Route path="/courses/create" element={<CreateCourse />} />
+            <Route path="/courses/:id" element={<CourseView />} />
+            <Route path="/users" element={<UsersManagement />} />
+            <Route path="/users/create" element={<UserCreate />} />
+          </Routes>
+        </div>
+      </Router>
+    </UserProvider>
+  );
 }
 
 export default App;

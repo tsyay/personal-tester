@@ -12,29 +12,21 @@ const TestEdit = () => {
         description: '',
         test_type: 'MULTIPLE_CHOICE',
         time_limit: 0,
-        positions: [],
         questions: []
     });
-    const [availablePositions, setAvailablePositions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        fetchTestAndPositions();
+        fetchTest();
     }, [id]);
 
-    const fetchTestAndPositions = async () => {
+    const fetchTest = async () => {
         try {
-            const [testRes, positionsRes] = await Promise.all([
-                axios.get(`http://localhost:8000/api/tests/${id}/`, {
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
-                }),
-                axios.get('http://localhost:8000/api/positions/', {
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
-                })
-            ]);
-            setTest(testRes.data);
-            setAvailablePositions(positionsRes.data);
+            const response = await axios.get(`http://localhost:8000/api/tests/${id}/`, {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+            });
+            setTest(response.data);
         } catch (err) {
             console.error('Error fetching data:', err);
             setError('Не удалось загрузить данные');
@@ -112,21 +104,6 @@ const TestEdit = () => {
         setTest(prev => ({ ...prev, questions: newQuestions }));
     };
 
-    const handlePositionChange = (positionId) => {
-        setTest(prev => {
-            const positions = [...prev.positions];
-            const index = positions.findIndex(p => p.id === positionId);
-            
-            if (index === -1) {
-                positions.push(positionId);
-            } else {
-                positions.splice(index, 1);
-            }
-            
-            return { ...prev, positions };
-        });
-    };
-
     if (loading) {
         return <div className="loading">Загрузка...</div>;
     }
@@ -190,22 +167,6 @@ const TestEdit = () => {
                     />
                 </div>
 
-                <div className="form-group">
-                    <label>Должности:</label>
-                    <div className="positions-list">
-                        {availablePositions.map(position => (
-                            <label key={position.id} className="position-checkbox">
-                                <input
-                                    type="checkbox"
-                                    checked={test.positions.includes(position.id)}
-                                    onChange={() => handlePositionChange(position.id)}
-                                />
-                                {position.name}
-                            </label>
-                        ))}
-                    </div>
-                </div>
-
                 <div className="questions-section">
                     <h2>Вопросы</h2>
                     {test.questions.map((question, questionIndex) => (
@@ -214,10 +175,10 @@ const TestEdit = () => {
                                 <h3>Вопрос {questionIndex + 1}</h3>
                                 <button
                                     type="button"
-                                    className="remove-question-button"
                                     onClick={() => removeQuestion(questionIndex)}
+                                    className="remove-button"
                                 >
-                                    Удалить вопрос
+                                    Удалить
                                 </button>
                             </div>
 
@@ -247,42 +208,36 @@ const TestEdit = () => {
                                 <input
                                     type="number"
                                     value={question.points}
-                                    onChange={(e) => updateQuestion(questionIndex, 'points', parseInt(e.target.value) || 1)}
+                                    onChange={(e) => updateQuestion(questionIndex, 'points', parseInt(e.target.value) || 0)}
                                     min="1"
+                                    required
                                 />
                             </div>
 
                             {question.question_type === 'MULTIPLE_CHOICE' && (
                                 <div className="answers-section">
-                                    <h4>Варианты ответов:</h4>
+                                    <h4>Варианты ответов</h4>
                                     {question.answers.map((answer, answerIndex) => (
                                         <div key={answerIndex} className="answer-item">
                                             <input
                                                 type="text"
                                                 value={answer.text}
                                                 onChange={(e) => updateAnswer(questionIndex, answerIndex, 'text', e.target.value)}
-                                                placeholder="Текст ответа"
+                                                placeholder="Введите вариант ответа"
                                                 required
                                             />
-                                            <label className="correct-answer-label">
+                                            <label className="checkbox-label">
                                                 <input
-                                                    type="radio"
-                                                    name={`correct-${questionIndex}`}
+                                                    type="checkbox"
                                                     checked={answer.is_correct}
-                                                    onChange={() => {
-                                                        const newQuestions = [...test.questions];
-                                                        newQuestions[questionIndex].answers.forEach((a, i) => {
-                                                            a.is_correct = i === answerIndex;
-                                                        });
-                                                        setTest(prev => ({ ...prev, questions: newQuestions }));
-                                                    }}
+                                                    onChange={(e) => updateAnswer(questionIndex, answerIndex, 'is_correct', e.target.checked)}
                                                 />
                                                 Правильный ответ
                                             </label>
                                             <button
                                                 type="button"
-                                                className="remove-answer-button"
                                                 onClick={() => removeAnswer(questionIndex, answerIndex)}
+                                                className="remove-button"
                                             >
                                                 Удалить
                                             </button>
@@ -290,33 +245,11 @@ const TestEdit = () => {
                                     ))}
                                     <button
                                         type="button"
-                                        className="add-answer-button"
                                         onClick={() => addAnswer(questionIndex)}
+                                        className="add-button"
                                     >
                                         Добавить вариант ответа
                                     </button>
-                                </div>
-                            )}
-
-                            {question.question_type === 'TEXT_INPUT' && (
-                                <div className="answers-section">
-                                    <h4>Правильный ответ:</h4>
-                                    <div className="answer-item">
-                                        <input
-                                            type="text"
-                                            value={question.answers[0]?.text || ''}
-                                            onChange={(e) => {
-                                                const newQuestions = [...test.questions];
-                                                if (!newQuestions[questionIndex].answers.length) {
-                                                    newQuestions[questionIndex].answers = [{ text: '', is_correct: true }];
-                                                }
-                                                newQuestions[questionIndex].answers[0].text = e.target.value;
-                                                setTest(prev => ({ ...prev, questions: newQuestions }));
-                                            }}
-                                            placeholder="Введите правильный ответ"
-                                            required
-                                        />
-                                    </div>
                                 </div>
                             )}
                         </div>
@@ -324,16 +257,18 @@ const TestEdit = () => {
 
                     <button
                         type="button"
-                        className="add-question-button"
                         onClick={addQuestion}
+                        className="add-button"
                     >
                         Добавить вопрос
                     </button>
                 </div>
 
-                <button type="submit" className="submit-button">
-                    Сохранить изменения
-                </button>
+                <div className="form-actions">
+                    <button type="submit" className="submit-button">
+                        Сохранить изменения
+                    </button>
+                </div>
             </form>
         </div>
     );

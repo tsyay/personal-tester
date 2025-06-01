@@ -216,7 +216,7 @@ class ArticleCreateSerializer(serializers.ModelSerializer):
 class ArticleProgressSerializer(serializers.ModelSerializer):
     class Meta:
         model = ArticleProgress
-        fields = ['current_page', 'progress_percentage', 'is_completed', 'last_read_at']
+        fields = ['current_page', 'progress_percentage', 'is_completed', 'last_read_at'] 
 
 class CourseSerializer(serializers.ModelSerializer):
     articles = serializers.SerializerMethodField()

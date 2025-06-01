@@ -154,12 +154,7 @@ class TestViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role in ['TEACHER', 'ADMIN']:
-            return Test.objects.prefetch_related('questions', 'positions').all()
-        return Test.objects.filter(
-            is_published=True,
-            positions__in=[user.position]
-        ).prefetch_related('questions', 'positions').distinct()
+        return Test.objects.prefetch_related('questions').all()
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -352,8 +347,7 @@ class ArticleViewSet(viewsets.ModelViewSet):
         if user.role in ['TEACHER', 'ADMIN']:
             return Article.objects.prefetch_related('positions').all()
         return Article.objects.filter(
-            is_published=True,
-            positions__in=[user.position]
+            is_published=True
         ).prefetch_related('positions').distinct()
 
     def get_serializer_class(self):
@@ -507,9 +501,7 @@ class CourseViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if user.role in ['TEACHER', 'ADMIN']:
             return Course.objects.prefetch_related('articles', 'tests', 'positions').all()
-        return Course.objects.filter(
-            positions__in=[user.position]
-        ).prefetch_related('articles', 'tests', 'positions').distinct()
+        return Course.objects.prefetch_related('articles', 'tests', 'positions').all()
 
     def perform_create(self, serializer):
         if self.request.user.role not in ['TEACHER', 'ADMIN']:

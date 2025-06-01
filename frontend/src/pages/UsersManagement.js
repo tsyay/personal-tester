@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, Trash2 } from 'lucide-react';
 import '../styles/UsersManagement.css';
 
 const UsersManagement = () => {
@@ -71,6 +71,24 @@ const UsersManagement = () => {
         }
     };
 
+    const handleDeleteUser = async (userId) => {
+        if (!window.confirm('Вы уверены, что хотите удалить этого пользователя?')) {
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem('access_token');
+            await axios.delete(`http://localhost:8000/api/students/${userId}/`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            
+            setUsers(users.filter(user => user.id !== userId));
+        } catch (err) {
+            console.error('Error deleting user:', err);
+            setError('Ошибка при удалении пользователя');
+        }
+    };
+
     const handleCreateUser = () => {
         navigate('/users/create');
     };
@@ -132,12 +150,19 @@ const UsersManagement = () => {
                                         <option value="COOK">Повар</option>
                                     </select>
                                 </td>
-                                <td>
+                                <td className="actions-cell">
                                     <button
                                         className="save-button"
                                         onClick={() => handlePositionChange(user.id, user.position)}
                                     >
                                         Сохранить
+                                    </button>
+                                    <button
+                                        className="delete-button"
+                                        onClick={() => handleDeleteUser(user.id)}
+                                        title="Удалить пользователя"
+                                    >
+                                        <Trash2 className="button-icon" />
                                     </button>
                                 </td>
                             </tr>

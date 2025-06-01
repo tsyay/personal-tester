@@ -25,31 +25,29 @@ const Login = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError(null);
         setLoading(true);
+        setError(null);
 
         try {
-            // Сначала получаем токены
-            const authResponse = await axios.post(
+            console.log('Debug - Login attempt data:', JSON.stringify(formData, null, 2));
+
+            const response = await axios.post(
                 'http://localhost:8000/api/students/login/',
-                {
-                    username: formData.username,
-                    password: formData.password
-                }
+                formData
             );
 
-            const { access, refresh, user } = authResponse.data;
+            console.log('Debug - Login response:', JSON.stringify(response.data, null, 2));
 
-            // Сохраняем токены
+            const { access, refresh, user } = response.data;
             localStorage.setItem('access_token', access);
             localStorage.setItem('refresh_token', refresh);
 
             // Получаем полные данные пользователя
             const userResponse = await axios.get('http://localhost:8000/api/students/me/', {
-                headers: {
-                    'Authorization': `Bearer ${access}`
-                }
+                headers: { 'Authorization': `Bearer ${access}` }
             });
+
+            console.log('Debug - User data after login:', JSON.stringify(userResponse.data, null, 2));
 
             // Обновляем состояние пользователя через контекст
             updateUser(userResponse.data);
@@ -59,6 +57,7 @@ const Login = () => {
 
             navigate('/');
         } catch (err) {
+            console.error('Debug - Login error:', JSON.stringify(err.response?.data, null, 2));
             if (err.response?.data) {
                 const data = err.response.data;
                 if (data.password) {
@@ -88,46 +87,44 @@ const Login = () => {
                     <p>Войдите в свой аккаунт для доступа к тестам</p>
                 </div>
 
-                <form className="auth-form" onSubmit={handleSubmit}>
-                    {error && (
-                        <div className="error-message">
-                            <AlertCircle className="h-5 w-5" />
-                            <span>{error}</span>
-                        </div>
-                    )}
+                {error && (
+                    <div className="error-message">
+                        <AlertCircle className="h-5 w-5" />
+                        <span>{error}</span>
+                    </div>
+                )}
 
+                <form className="auth-form" onSubmit={handleSubmit}>
                     <div className="form-group">
-                        <label htmlFor="username">Имя пользователя</label>
-                        <div className="input-wrapper">
-                            <User className="input-icon" />
-                            <input
-                                id="username"
-                                name="username"
-                                type="text"
-                                required
-                                value={formData.username}
-                                onChange={handleChange}
-                                className="input"
-                                placeholder="Введите имя пользователя"
-                            />
-                        </div>
+                        <label htmlFor="username">
+                            <User className="h-5 w-5" />
+                            Email
+                        </label>
+                        <input
+                            type="email"
+                            id="username"
+                            name="username"
+                            value={formData.username}
+                            onChange={handleChange}
+                            required
+                            placeholder="Введите email"
+                        />
                     </div>
 
                     <div className="form-group">
-                        <label htmlFor="password">Пароль</label>
-                        <div className="input-wrapper">
-                            <Lock className="input-icon" />
-                            <input
-                                id="password"
-                                name="password"
-                                type="password"
-                                required
-                                value={formData.password}
-                                onChange={handleChange}
-                                className="input"
-                                placeholder="••••••••"
-                            />
-                        </div>
+                        <label htmlFor="password">
+                            <Lock className="h-5 w-5" />
+                            Пароль
+                        </label>
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            value={formData.password}
+                            onChange={handleChange}
+                            required
+                            placeholder="Введите пароль"
+                        />
                     </div>
 
                     <button
