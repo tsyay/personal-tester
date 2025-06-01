@@ -69,17 +69,48 @@ python manage.py runserver
 
 ### 3. Настройка фронтенда
 
-1. Откройте новый терминал и перейдите в папку frontend:
+#### Установка Node.js и npm
+
+1. Установите Node.js и npm:
+- Windows: Скачайте и установите с [официального сайта](https://nodejs.org/)
+- macOS: Используйте Homebrew:
+```bash
+brew install node
+```
+- Linux (Ubuntu/Debian):
+```bash
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt-get install -y nodejs
+```
+
+2. Проверьте установку:
+```bash
+node --version
+npm --version
+```
+
+#### Установка инструментов разработки
+
+1. Установите глобальные инструменты:
+```bash
+npm install -g create-react-app
+npm install -g typescript
+npm install -g @types/node
+npm install -g prettier
+npm install -g eslint
+```
+
+2. Откройте новый терминал и перейдите в папку frontend:
 ```bash
 cd frontend
 ```
 
-2. Установите зависимости Node.js:
+3. Установите зависимости проекта:
 ```bash
 npm install
 ```
 
-3. Запустите сервер разработки:
+4. Запустите сервер разработки:
 ```bash
 npm start
 ```
