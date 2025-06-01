@@ -181,13 +181,6 @@ const Profile = () => {
               </div>
             </div>
 
-            {/* Правая часть - рейтинг */}
-            <div className="flex items-center md:ml-auto">
-              <div className="flex items-center bg-yellow-50 px-4 py-2 rounded-lg">
-                <Star className="h-5 w-5 text-yellow-400" />
-                <span className="ml-2 font-medium text-yellow-800">Средний балл: 4.7</span>
-              </div>
-            </div>
           </div>
         </div>
 
